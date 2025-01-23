@@ -1,4 +1,4 @@
-import './App.css';  // Importa los estilos
+import './css/App.css';  // Importa los estilos
 import React, { useState } from 'react';
 
 function AgregarProductos() {

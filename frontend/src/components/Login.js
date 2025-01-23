@@ -1,5 +1,6 @@
+// src/Login.js
 import React, { useState } from 'react';
-import '../App.css'; 
+import '../css/App.css'; 
 
 function Login({ onLogin }) {
   const [credentials, setCredentials] = useState({

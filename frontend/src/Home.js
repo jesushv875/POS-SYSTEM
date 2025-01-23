@@ -14,9 +14,7 @@ function Home() {
     <div>
       {loggedIn ? (
         <div>
-          <h1>Bienvenido</h1>
-          <Link to="/inventario">Ir al Inventario</Link>
-          <Link to="/agregarProductos">Agregar Productos</Link>
+          <h1>Bienvenido xxx</h1>
         </div>
       ) : (
         <Login onLogin={handleLogin} />
