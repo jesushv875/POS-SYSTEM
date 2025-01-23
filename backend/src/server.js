@@ -1,34 +1,29 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-//const PORT = process.env.PORT || 5001;
+const authRoutes = require('./routes/authRoutes');
 const productoRoutes = require('./routes/productoRoutes');
 
 const app = express();
 
-// Otros middlewares y configuraciones
+// Configuración de CORS
+const corsOptions = {
+  origin: 'http://localhost:3000', // Asegúrate de que sea el puerto correcto de tu frontend
+};
+
+app.use(cors(corsOptions));  // Habilitar CORS con las opciones configuradas
 
 // Middlewares
-app.use(cors());
 app.use(express.json());
 
-// Otros middlewares y configuraciones
+// Usa las rutas
+app.use('/api/auth', authRoutes);  // Ruta para la autenticación
+app.use('/api', productoRoutes);  // Ruta para productos
 
-app.use('/api', productoRoutes); // Ruta base para todas las API
-
-// Routes
-app.use(cors({
-    origin: 'http://localhost:3000' // Cambia esto por la URL de tu frontend
-  }));
-  
-app.get('/', (req, res) => {
-  res.send('Punto de Venta Backend funcionando');
-});
-
+// Inicia el servidor
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
-//app.listen(5001, () => {
-//    console.log('Servidor corriendo en el puerto 5001');
-//  });
+app.get('/', (req, res) => {
+    res.send('El servidor está funcionando correctamente');
+  });

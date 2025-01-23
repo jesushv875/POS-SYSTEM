@@ -78,7 +78,7 @@ function AgregarProductos() {
             value={producto.proveedor}
             placeholder="Proveedor"
             onChange={handleChange}
-            required
+            //required
           />
         </div>
         <button type="submit">Agregar Producto</button>
