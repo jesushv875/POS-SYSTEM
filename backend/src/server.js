@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const productoRoutes = require('./routes/productoRoutes');
+const proveedorRoutes = require('./routes/proveedorRoutes');
+const proveedoresRoutes = require("./routes/proveedoresRoutes");
 
 const app = express();
 
@@ -18,6 +20,8 @@ app.use(express.json());
 // Usa las rutas
 app.use('/api/auth', authRoutes);  // Ruta para la autenticación
 app.use('/api', productoRoutes);  // Ruta para productos
+app.use('/api/proveedores', proveedorRoutes);
+app.use("/api/proveedores", proveedoresRoutes);
 
 // Inicia el servidor
 const PORT = process.env.PORT || 5001;

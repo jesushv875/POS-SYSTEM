@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom'; // Para navegación con React Router
 import '../css/Navbar.css'; // Asegúrate de que tienes este archivo CSS
-import { FaTachometerAlt, FaBox, FaCashRegister, FaWarehouse, FaFileAlt, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaBox, FaCashRegister, FaWarehouse, FaFileAlt, FaCog, FaSignOutAlt, FaPeopleArrows } from 'react-icons/fa';
 
 function Navbar() {
   const handleLogout = () => {
@@ -35,6 +35,11 @@ function Navbar() {
         <li>
           <Link to="/reportes" className="navbar-link">
             <FaFileAlt /> Reportes
+          </Link>
+        </li>
+        <li>
+          <Link to="/Agregar-Proveedor" className="navbar-link">
+            <FaPeopleArrows /> Proveedor
           </Link>
         </li>
         <li>

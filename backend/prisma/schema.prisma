@@ -17,14 +17,6 @@ model User {
   name  String
   email String @unique
 }
-model Producto {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  precio    Float
-  stock     Int
-  proveedor Proveedor? @relation(fields: [proveedorId], references: [id])
-  proveedorId Int?
-}
 
 model Usuario {
   id        Int      @id @default(autoincrement())
@@ -33,10 +25,21 @@ model Usuario {
   password  String
   rol       String   // "admin", "cajero", etc.
 }
-
 model Proveedor {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  telefono  String
-  productos Producto[]
+  id         Int      @id @default(autoincrement())
+  nombre     String   @db.VarChar(100)
+  telefono   String?  @db.VarChar(20)
+  email      String?  @unique @db.VarChar(100)
+  direccion  String?  @db.Text
+  creadoEn   DateTime @default(now())
+  productos  Producto[]
+}
+
+model Producto {
+  id          Int        @id @default(autoincrement())
+  nombre      String     @db.VarChar(100)
+  precio      Float
+  stock       Int
+  proveedor   Proveedor? @relation(fields: [proveedorId], references: [id])
+  proveedorId Int?
 }

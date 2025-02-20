@@ -7,6 +7,7 @@ import Inventario from './Inventario';
 import Home from './Home'; // Vista principal (Agregar productos)
 import Navbar from './components/Navbar'; // Importa el Navbar
 import Login from './components/Login'; // Importa el componente Login
+import AgregarProveedor from './AgregarProveedor'; 
 
 function App() {
   // Estado para verificar si el usuario está autenticado
@@ -44,9 +45,11 @@ function App() {
         />
         <Route path="/agregarProductos" element={isAuthenticated ? <AgregarProductos /> : <Login onLogin={handleLogin} />} />
         <Route path="/inventario" element={isAuthenticated ? <Inventario /> : <Login onLogin={handleLogin} />} />
+        <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Login onLogin={handleLogin} />} />
       </Routes>
     </Router>
   );
 }
+
 
 export default App;
