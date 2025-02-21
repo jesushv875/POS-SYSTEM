@@ -18,11 +18,6 @@ function Navbar() {
           </Link>
         </li>
         <li>
-          <Link to="/productos" className="navbar-link">
-            <FaBox /> Productos
-          </Link>
-        </li>
-        <li>
           <Link to="/ventas" className="navbar-link">
             <FaCashRegister /> Ventas
           </Link>
@@ -43,7 +38,7 @@ function Navbar() {
           </Link>
         </li>
         <li>
-          <Link to="/configuracion" className="navbar-link">
+          <Link to="/usuarios" className="navbar-link">
             <FaCog /> Configuración
           </Link>
         </li>

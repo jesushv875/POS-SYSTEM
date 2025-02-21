@@ -2,12 +2,12 @@
 import './css/App.css';
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import AgregarProductos from './agregarProductos';
 import Inventario from './Inventario';
 import Home from './Home'; // Vista principal (Agregar productos)
 import Navbar from './components/Navbar'; // Importa el Navbar
 import Login from './components/Login'; // Importa el componente Login
 import AgregarProveedor from './AgregarProveedor'; 
+import Usuarios from './pages/Usuarios';
 
 function App() {
   // Estado para verificar si el usuario está autenticado
@@ -25,6 +25,7 @@ function App() {
   const handleLogin = () => {
     setIsAuthenticated(true); // Cambia el estado para mostrar el Navbar
   };
+  
 
   return (
     <Router>
@@ -43,9 +44,9 @@ function App() {
             )
           }
         />
-        <Route path="/agregarProductos" element={isAuthenticated ? <AgregarProductos /> : <Login onLogin={handleLogin} />} />
         <Route path="/inventario" element={isAuthenticated ? <Inventario /> : <Login onLogin={handleLogin} />} />
         <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Login onLogin={handleLogin} />} />
+        <Route path="/usuarios" element={isAuthenticated ? <Usuarios /> : <Login onLogin={handleLogin} />} />
       </Routes>
     </Router>
   );

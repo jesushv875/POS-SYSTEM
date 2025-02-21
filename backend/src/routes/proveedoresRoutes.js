@@ -46,5 +46,14 @@ router.delete("/:id", async (req, res) => {
       res.status(500).json({ message: "Error al eliminar proveedor" });
     }
   });
+  router.get('/', async (req, res) => {
+    try {
+      const proveedores = await prisma.proveedor.findMany();
+      res.json(proveedores);
+    } catch (error) {
+      console.error('Error al obtener proveedores:', error);
+      res.status(500).json({ message: 'Error al obtener proveedores' });
+    }
+  });
 
 module.exports = router;
