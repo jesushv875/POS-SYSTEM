@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './css/App.css'; // Importa los estilos
+import { jwtDecode } from 'jwt-decode';
+
 
 function Inventario() {
   const [productos, setProductos] = useState([]);
@@ -14,7 +16,35 @@ function Inventario() {
   });
   const [editProducto, setEditProducto] = useState(null);
 
-  const usuarioRol = 'admin';
+ // const usuarioRol = 'admin';
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      //const [usuarioId, setUsuarioId] = useState(null); // Estado para almacenar el usuarioId
+      const token = localStorage.getItem('token');
+      const [usuarioId, setUsuarioId] = useState(null);
+      const [usuarioRol, setUsuarioRol] = useState(null);
+    
+    // Mostrar el token en la consola si está disponible
+    if (token) {
+      const decodedToken = jwtDecode(token);  // Decodificar el token
+    } else {
+      console.error('No token inventario');
+    }
+    useEffect(() => {
+      const token = localStorage.getItem('token');
+    
+      if (token) {
+        const decodedToken = jwtDecode(token);
+        setUsuarioId(decodedToken.id);
+        setUsuarioRol(decodedToken.rol);
+      } else {
+        console.error('No token inventario');
+      }
+    }, []);
+    useEffect(() => {
+      if (usuarioId !== null) {
+      }
+    }, [usuarioId]);
+    
 
   const fetchData = async () => {
     try {
@@ -64,27 +94,62 @@ function Inventario() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
+      // Obtener token del localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('No hay token, inicia sesión nuevamente');
+        return;
+      }
+  
+      // Decodificar token
+      const decodedToken = jwtDecode(token);
+      console.log("Decoded Token:", decodedToken.id); // Verificar qué contiene el token
+  
+      // Validar que el token contiene usuarioId
+      if (!decodedToken || !decodedToken.id) {
+        alert('Error: Token inválido, inicia sesión nuevamente');
+        return;
+      }
+  
+      const usuarioId = decodedToken.id; // Extraer el ID del usuario
+  
       let response;
       let data;
+  
+      const productoData = editProducto || nuevoProducto;
+      const producto = { 
+        ...productoData, 
+        usuarioId // Incluir usuarioId directamente desde decodedToken
+      };
+      if (usuarioId) {
+        console.log("Decoded Token:", decodedToken.id); // Verificar qué contiene el token
 
+      }
+  
       if (editProducto) {
         response = await fetch(`http://localhost:5001/api/productos/${editProducto.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editProducto),
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(producto),
         });
       } else {
         response = await fetch('http://localhost:5001/api/productos/agregar', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nuevoProducto),
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(producto),
         });
       }
-
+  
       data = await response.json();
-
+  
       if (response.ok) {
         alert(editProducto ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         fetchData();
@@ -101,22 +166,42 @@ function Inventario() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("¿Seguro que quieres eliminar este producto?")) return;
-
+  
     try {
-      const response = await fetch(`http://localhost:5001/api/productos/${id}`, { method: 'DELETE' });
-
+      // Obtener el token del localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("No estás autenticado");
+        return;
+      }
+  
+      // Decodificar el token para obtener el usuarioId
+      const decodedToken = jwtDecode(token);
+      const usuarioId = decodedToken.id; // Asegúrate de que el token tenga el campo 'id'
+      console.log("Usuario ID obtenido del token:", usuarioId); // Verificar qué contiene el token
+  
+      // Enviar la solicitud DELETE e incluir el usuarioId en el body
+      const response = await fetch(`http://localhost:5001/api/productos/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // Asegurar autenticación
+        },
+        body: JSON.stringify({ usuarioId }), // Enviar usuarioId en el body
+      });
+  
       if (response.ok) {
-        alert('Producto eliminado correctamente');
-        fetchData();
+        alert("Producto eliminado correctamente");
+        fetchData(); // Recargar lista de productos
       } else {
-        alert('Error al eliminar el producto');
+        const errorData = await response.json();
+        alert("Error al eliminar el producto: " + errorData.message);
       }
     } catch (error) {
-      console.error('Error al eliminar producto:', error);
-      alert('No se pudo conectar con el servidor.');
+      console.error("Error al eliminar producto:", error);
+      alert("No se pudo conectar con el servidor.");
     }
   };
-
   const handleEdit = (producto) => {
     setEditProducto(producto);
   };
@@ -197,7 +282,7 @@ function Inventario() {
               <th>Precio</th>
               <th>Stock</th>
               <th>Proveedor</th>
-              <th>Acción</th>
+              {usuarioRol === 'admin' && <th>Acción</th>}
             </tr>
           </thead>
           <tbody>
@@ -208,14 +293,14 @@ function Inventario() {
                 <td>${producto.precio}</td>
                 <td>{producto.stock}</td>
                 <td>{proveedores.find((p) => p.id === producto.proveedorId)?.nombre || 'N/A'}</td>
+                {usuarioRol === 'admin' && (
                 <td>
-                  {usuarioRol === 'admin' && (
                     <>
                       <button className="edit-btn" onClick={() => handleEdit(producto)}>Editar</button>
                       <button className="delete-btn" onClick={() => handleDelete(producto.id)}>Eliminar</button>
                     </>
-                  )}
                 </td>
+               )}
               </tr>
             ))}
           </tbody>

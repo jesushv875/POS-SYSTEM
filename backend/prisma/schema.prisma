@@ -19,11 +19,13 @@ model User {
 }
 
 model Usuario {
-  id        Int      @id @default(autoincrement())
-  nombre    String
-  correo    String   @unique
-  password  String
-  rol       String   // "admin", "cajero", etc.
+  id       Int    @id @default(autoincrement())
+  nombre   String
+  correo   String @unique
+  password String
+  rol      String
+
+  logs     Log[]  // 👈 Agregamos esta relación con los logs
 }
 model Proveedor {
   id         Int      @id @default(autoincrement())
@@ -42,4 +44,15 @@ model Producto {
   stock       Int
   proveedor   Proveedor? @relation(fields: [proveedorId], references: [id])
   proveedorId Int?
+}
+
+model Log {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int?
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  accion      String
+  entidad     String
+  entidadId   Int?
+  detalles    String?
+  fecha       DateTime @default(now())
 }

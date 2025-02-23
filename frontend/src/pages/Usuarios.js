@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../css/App.css'; // Asegúrate de tener los estilos
+import { jwtDecode } from 'jwt-decode';
 
 function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -7,11 +8,21 @@ function Usuarios() {
     nombre: '',
     correo: '',
     password: '',
-    rol: 'usuario', // Valor por defecto
+    rol: 'usuario',
   });
   const [editUsuario, setEditUsuario] = useState(null);
+  const [usuarioAuth, setUsuarioAuth] = useState({ id: null, rol: null });
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setUsuarioAuth({ id: decoded.id, rol: decoded.rol });
+      } catch (error) {
+        console.error('Error al decodificar el token:', error);
+      }
+    }
     fetchUsuarios();
   }, []);
 
@@ -40,35 +51,31 @@ function Usuarios() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
+      const usuarioData = editUsuario || nuevoUsuario;
       let response;
-      let data;
 
       if (editUsuario) {
-        // Actualizar usuario
         response = await fetch(`http://localhost:5001/api/usuarios/${editUsuario.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editUsuario),
+          body: JSON.stringify(usuarioData),
         });
       } else {
-        // Agregar usuario
         response = await fetch('http://localhost:5001/api/usuarios/agregar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(nuevoUsuario),
+          body: JSON.stringify(usuarioData),
         });
       }
 
-      data = await response.json();
       if (response.ok) {
         alert(editUsuario ? 'Usuario actualizado' : 'Usuario agregado');
         setNuevoUsuario({ nombre: '', correo: '', password: '', rol: 'usuario' });
         setEditUsuario(null);
-        fetchUsuarios(); // Recargar la lista de usuarios
+        fetchUsuarios();
       } else {
-        alert('Error: ' + data.error);
+        alert('Error al procesar la solicitud');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -77,6 +84,11 @@ function Usuarios() {
   };
 
   const handleDelete = async (id) => {
+    if (id === usuarioAuth.id) {
+      alert('No puedes eliminar tu propio usuario.');
+      return;
+    }
+
     if (window.confirm('¿Seguro que quieres eliminar este usuario?')) {
       try {
         const response = await fetch(`http://localhost:5001/api/usuarios/${id}`, {
@@ -85,7 +97,7 @@ function Usuarios() {
 
         if (response.ok) {
           alert('Usuario eliminado correctamente');
-          fetchUsuarios(); // Recargar la lista de usuarios
+          fetchUsuarios();
         } else {
           alert('Error al eliminar el usuario');
         }
@@ -94,10 +106,6 @@ function Usuarios() {
         alert('No se pudo conectar con el servidor.');
       }
     }
-  };
-
-  const handleEdit = (usuario) => {
-    setEditUsuario(usuario);
   };
 
   return (
@@ -164,7 +172,7 @@ function Usuarios() {
               <th>Nombre</th>
               <th>Correo</th>
               <th>Rol</th>
-              <th>Acción</th>
+              {usuarioAuth.rol === 'admin' && <th>Acción</th>}
             </tr>
           </thead>
           <tbody>
@@ -174,14 +182,18 @@ function Usuarios() {
                 <td>{usuario.nombre}</td>
                 <td>{usuario.correo}</td>
                 <td>{usuario.rol}</td>
-                <td>
-                  <button className="edit-btn" onClick={() => handleEdit(usuario)}>
-                    Editar
-                  </button>
-                  <button className="delete-btn" onClick={() => handleDelete(usuario.id)}>
-                    Eliminar
-                  </button>
-                </td>
+                {usuarioAuth.rol === 'admin' && (
+                  <td>
+                    <button className="edit-btn" onClick={() => setEditUsuario(usuario)}>
+                      Editar
+                    </button>
+                    {usuario.id !== usuarioAuth.id && (
+                      <button className="delete-btn" onClick={() => handleDelete(usuario.id)}>
+                        Eliminar
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

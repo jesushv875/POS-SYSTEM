@@ -1,4 +1,3 @@
-// src/Login.js
 import React, { useState } from 'react';
 import '../css/App.css'; 
 
@@ -37,7 +36,6 @@ function Login({ onLogin }) {
   return (
     <div className="container">
     <form onSubmit={handleSubmit}>
-      
       <div> 
         <label>Email:</label>
         <input

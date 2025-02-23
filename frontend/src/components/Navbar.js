@@ -38,7 +38,7 @@ function Navbar() {
           </Link>
         </li>
         <li>
-          <Link to="/usuarios" className="navbar-link">
+          <Link to="/configuracion" className="navbar-link">
             <FaCog /> Configuración
           </Link>
         </li>
