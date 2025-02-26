@@ -23,6 +23,7 @@ router.get('/', async (req, res) => {
   try {
     const productos = await prisma.producto.findMany({
       include: { proveedor: true }, // Opcional si quieres incluir el nombre del proveedor
+      include: { categoria: true},
     });
     res.json(productos); // Devuelve los productos al frontend
   } catch (error) {
@@ -33,7 +34,7 @@ router.get('/', async (req, res) => {
 
 // Ruta para agregar un producto
 router.post('/agregar', async (req, res) => {
-  const { nombre, precio, stock, proveedorId, usuarioId } = req.body; // Obtener usuarioId desde el cuerpo de la solicitud
+  const { nombre, precio, stock, proveedorId, usuarioId, categoriaId, codigoBarras, imagenUrl, stockMinimo } = req.body;
 
   // Validación de datos
   if (!nombre || !precio || !stock || !proveedorId || !usuarioId) {
@@ -41,28 +42,32 @@ router.post('/agregar', async (req, res) => {
   }
 
   try {
-    // Crear el producto
+    // Crear el producto con los nuevos campos
     const producto = await prisma.producto.create({
       data: {
         nombre,
-        precio: parseFloat(precio), // Asegurar que precio sea Float
-        stock: parseInt(stock), // Asegurar que stock sea Int
-        proveedorId: parseInt(proveedorId), // Asegurar que proveedorId sea Int
+        precio: parseFloat(precio),
+        stock: parseInt(stock),
+        proveedorId: parseInt(proveedorId),
+        categoriaId: categoriaId ? parseInt(categoriaId) : null, // Asegurar que se almacena correctamente
+        codigoBarras,
+        imagenUrl,
+        stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
       },
     });
 
     // Crear el log
     await prisma.log.create({
       data: {
-        usuarioId, // Usamos usuarioId directamente desde la solicitud
+        usuarioId,
         accion: 'Crear',
         entidad: 'Producto',
         entidadId: producto.id,
-        detalles: `Producto ${producto.nombre} creado.`,
+        detalles: `Producto ${producto.nombre} creado con código de barras ${codigoBarras}.`,
       },
     });
 
-    res.status(201).json(producto); // Devuelve el producto creado
+    res.status(201).json(producto);
   } catch (error) {
     console.error('Error al agregar producto:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
@@ -107,28 +112,26 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Ruta para actualizar un producto por ID
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre, precio, stock, proveedorId, usuarioId } = req.body; // Recibir usuarioId
+  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo, usuarioId } = req.body;
 
   try {
-    const productoId = parseInt(id); // Convertir el ID a número
-    if (isNaN(productoId)) {
-      return res.status(400).json({ message: 'ID inválido' });
-    }
-
     const productoActualizado = await prisma.producto.update({
-      where: { id: productoId },
+      where: { id: parseInt(id) },
       data: {
         nombre,
         precio: parseFloat(precio),
         stock: parseInt(stock),
         proveedorId: proveedorId ? parseInt(proveedorId) : null,
+        categoriaId: categoriaId ? parseInt(categoriaId) : null,
+        codigoBarras,
+        imagenUrl,
+        stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
       },
     });
 
-    // Crear el log de la actualización
+    // Registrar log de actualización
     if (usuarioId) {
       await prisma.log.create({
         data: {

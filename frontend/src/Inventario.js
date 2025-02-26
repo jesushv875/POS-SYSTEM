@@ -7,12 +7,18 @@ function Inventario() {
   const [productos, setProductos] = useState([]);
   const [productosFiltrados, setProductosFiltrados] = useState([]); // Lista filtrada
   const [proveedores, setProveedores] = useState([]);
+  const [categorias, setCategorias] = useState ([]);
   const [busqueda, setBusqueda] = useState(''); // Estado del buscador
   const [nuevoProducto, setNuevoProducto] = useState({
     nombre: '',
     precio: '',
     stock: '',
+    stockMinimo: '',
     proveedorId: '',
+    codigoBarras: '',
+    imagen: '',
+    categoriaId: '',
+    imagenUrl: '',
   });
   const [editProducto, setEditProducto] = useState(null);
 
@@ -50,12 +56,14 @@ function Inventario() {
     try {
       const productosResponse = await fetch('http://localhost:5001/api/productos');
       const proveedoresResponse = await fetch('http://localhost:5001/api/proveedores');
+      const categoriasResponse = await fetch('http://localhost:5001/api/categorias'); // Asegúrate de tener este endpoint en el backend
 
-      if (productosResponse.ok && proveedoresResponse.ok) {
+      if (productosResponse.ok && proveedoresResponse.ok && categoriasResponse.ok) {
         const productosData = await productosResponse.json();
         setProductos(productosData);
-        setProductosFiltrados(productosData); // Inicialmente, productosFiltrados será igual a productos
+        setProductosFiltrados(productosData); 
         setProveedores(await proveedoresResponse.json());
+        setCategorias(await categoriasResponse.json()); 
       } else {
         console.error('Error al obtener datos');
       }
@@ -77,7 +85,8 @@ function Inventario() {
       setProductosFiltrados(productos);
     } else {
       const productosFiltrados = productos.filter((producto) =>
-        producto.nombre.toLowerCase().includes(valor)
+        producto.nombre.toLowerCase().includes(valor) ||
+        producto.codigoBarras.toLowerCase().includes(valor)
       );
       setProductosFiltrados(productosFiltrados);
     }
@@ -154,7 +163,7 @@ function Inventario() {
         alert(editProducto ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         fetchData();
         setEditProducto(null);
-        setNuevoProducto({ nombre: '', precio: '', stock: '', proveedorId: '' });
+        setNuevoProducto({ nombre: '', precio: '', stock: '', proveedorId: '', categoriaId: '', codigoBarras: '', imagenUrl: '', stockMinimo: ''});
       } else {
         alert('Error: ' + data.message);
       }
@@ -232,6 +241,16 @@ function Inventario() {
           />
         </div>
         <div>
+          <label>Codigo de Barras:</label>
+          <input
+            type="text"
+            name="codigoBarras"
+            value={editProducto ? editProducto.codigoBarras : nuevoProducto.codigoBarras} 
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div>
           <label>Precio:</label>
           <input
             type="number"
@@ -268,6 +287,42 @@ function Inventario() {
             ))}
           </select>
         </div>
+        <div>
+        <div>
+          <label>Stock Minimo:</label>
+          <input
+            type="number"
+            name="stockMinimo"
+            value={editProducto ? editProducto.stockMinimo : nuevoProducto.stockMinimo}
+            onChange={handleChange}
+          />
+        </div>
+          <label>Imagen url:</label>
+          <input
+            type="text"
+            name="imagenUrl"
+            value={editProducto ? editProducto.imagenUrl : nuevoProducto.imagenUrl}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label>Proveedor:</label>
+          <select
+            name="categoriaId"
+            value={editProducto ? editProducto.categoriaId : nuevoProducto.categoriaId}
+            onChange={handleChange}
+            required
+            className="styled-select"
+          >
+            <option value="">Selecciona una categoría</option>
+            {categorias.map((categoria) => (
+              <option key={categoria.id} value={categoria.id}>
+                {categoria.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        
         <button type="submit">{editProducto ? 'Actualizar Producto' : 'Agregar Producto'}</button>
       </form>
 
@@ -277,22 +332,29 @@ function Inventario() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Codigo</th>
               <th>Nombre</th>
               <th>Precio</th>
               <th>Stock</th>
               <th>Proveedor</th>
+              <th>Categoría</th>
+              <th>Imagen</th>
+              <th>Stock Min</th>
+
               {usuarioRol === 'admin' && <th>Acción</th>}
             </tr>
           </thead>
           <tbody>
             {productosFiltrados.map((producto) => (
               <tr key={producto.id}>
-                <td>{producto.id}</td>
+                <td>{producto.codigoBarras}</td>
                 <td>{producto.nombre}</td>
                 <td>${producto.precio}</td>
                 <td>{producto.stock}</td>
                 <td>{proveedores.find((p) => p.id === producto.proveedorId)?.nombre || 'N/A'}</td>
+                <td>{categorias.find((c) => c.id === producto.categoriaId)?.nombre || 'N/A' }</td>
+                <td><img src={producto.imagenUrl} alt={producto.nombre} width="100" height="100" /></td>
+                <td>{producto.stockMinimo}</td>
                 {usuarioRol === 'admin' && (
                 <td>
                     <>

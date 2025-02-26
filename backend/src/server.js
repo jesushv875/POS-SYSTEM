@@ -6,8 +6,8 @@ const proveedoresRoutes = require("./routes/proveedoresRoutes");
 const productosRoutes = require("./routes/productosRoutes");
 const usuariosRoutes = require('./routes/usuarios.routes');
 const logsRoutes = require('./routes/logsRoutes'); // Asegúrate de importar esto
-
-
+const ventasRoutes = require('./routes/ventas');
+const categoriasRoutes = require('./routes/categoriasRoutes');
 
 const app = express();
 
@@ -28,6 +28,10 @@ app.use("/api/proveedores", proveedoresRoutes);
 app.use("/api/productos", productosRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api', logsRoutes); // Esto debe existir para que /api/logs funcione
+app.use('/api/ventas', ventasRoutes);
+app.use('/api/categorias', categoriasRoutes); // ✅ Aquí usas la variable correctamente
+
+
 
 
 // Inicia el servidor

@@ -1,15 +1,25 @@
 // backend/src/controllers/productoController.js
 const prisma = require('../prismaClient');  // Asegúrate de que esta ruta es correcta
 
-// Crear un producto
 async function crearProducto(req, res) {
-  const { nombre, precio, stock, proveedorId } = req.body;
+  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo } = req.body;
+  
   try {
     const producto = await prisma.producto.create({
-      data: { nombre, precio, stock, proveedorId },
+      data: { 
+        nombre, 
+        precio: parseFloat(precio), 
+        stock: parseInt(stock), 
+        proveedorId: parseInt(proveedorId),
+        categoriaId: categoriaId ? parseInt(categoriaId) : null,
+        codigoBarras,
+        imagenUrl,
+        stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
+      },
     });
     res.status(201).json(producto);
   } catch (error) {
+    console.error('Error al crear el producto:', error);
     res.status(500).json({ error: "Error al crear el producto" });
   }
 }
@@ -45,14 +55,25 @@ async function obtenerProductoPorId(req, res) {
 // Actualizar un producto
 async function actualizarProducto(req, res) {
   const { id } = req.params;
-  const { nombre, precio, stock, proveedorId } = req.body;
+  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo } = req.body;
+
   try {
     const producto = await prisma.producto.update({
       where: { id: parseInt(id) },
-      data: { nombre, precio, stock, proveedorId },
+      data: { 
+        nombre, 
+        precio: parseFloat(precio), 
+        stock: parseInt(stock), 
+        proveedorId: proveedorId ? parseInt(proveedorId) : null,
+        categoriaId: categoriaId ? parseInt(categoriaId) : null,
+        codigoBarras,
+        imagenUrl,
+        stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
+      },
     });
     res.json(producto);
   } catch (error) {
+    console.error('Error al actualizar el producto:', error);
     res.status(500).json({ error: "Error al actualizar el producto" });
   }
 }

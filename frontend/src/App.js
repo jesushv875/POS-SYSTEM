@@ -9,6 +9,8 @@ import AgregarProveedor from './AgregarProveedor';
 import Usuarios from './pages/Usuarios';
 import Configuracion from './Configuracion';
 import { jwtDecode } from 'jwt-decode';
+import Ventas from './pages/Ventas';
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,6 +71,7 @@ function App() {
         <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Login onLogin={handleLogin} />} />
         <Route path="/usuarios" element={isAuthenticated ? <Usuarios /> : <Login onLogin={handleLogin} />} />
         <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Login onLogin={handleLogin} />} />
+        <Route path="/ventas" element={isAuthenticated ? <Ventas /> : <Login onLogin={handleLogin} />} />
       </Routes>
     </Router>
   );

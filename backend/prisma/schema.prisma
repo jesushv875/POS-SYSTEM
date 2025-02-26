@@ -12,11 +12,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-model User {
-  id    Int    @id @default(autoincrement())
-  name  String
-  email String @unique
-}
 
 model Usuario {
   id       Int    @id @default(autoincrement())
@@ -25,34 +20,70 @@ model Usuario {
   password String
   rol      String
 
-  logs     Log[]  // 👈 Agregamos esta relación con los logs
+  logs   Log[] // Relación con los logs (se mantiene)
+  ventas Venta[] // Relación con las ventas (se agrega)
 }
+
 model Proveedor {
-  id         Int      @id @default(autoincrement())
-  nombre     String   @db.VarChar(100)
-  telefono   String?  @db.VarChar(20)
-  email      String?  @unique @db.VarChar(100)
-  direccion  String?  @db.Text
-  creadoEn   DateTime @default(now())
-  productos  Producto[]
+  id        Int        @id @default(autoincrement())
+  nombre    String     @db.VarChar(100)
+  telefono  String?    @db.VarChar(20)
+  email     String?    @unique @db.VarChar(100)
+  direccion String?    @db.Text
+  creadoEn  DateTime   @default(now())
+  productos Producto[]
 }
 
 model Producto {
-  id          Int        @id @default(autoincrement())
-  nombre      String     @db.VarChar(100)
-  precio      Float
-  stock       Int
-  proveedor   Proveedor? @relation(fields: [proveedorId], references: [id])
-  proveedorId Int?
+  id           Int        @id @default(autoincrement())
+  nombre       String
+  precio       Float
+  stock        Int
+  proveedorId  Int
+  proveedor    Proveedor  @relation(fields: [proveedorId], references: [id])
+  codigoBarras String?
+  imagenUrl    String?
+  categoriaId  Int?
+  categoria    Categoria? @relation(fields: [categoriaId], references: [id])
+  stockMinimo  Int?
+  
+  // Relación inversa con DetalleVenta
+  detalleVentas DetalleVenta[] // Esto es lo que falta
+}
+
+model Categoria {
+  id      Int      @id @default(autoincrement())
+  nombre  String
+  productos Producto[]
 }
 
 model Log {
-  id          Int      @id @default(autoincrement())
-  usuarioId   Int?
-  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  accion      String
-  entidad     String
-  entidadId   Int?
-  detalles    String?
-  fecha       DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  accion    String
+  entidad   String
+  entidadId Int?
+  detalles  String?
+  fecha     DateTime @default(now())
+}
+
+model Venta {
+  id        Int            @id @default(autoincrement())
+  usuarioId Int?
+  usuario   Usuario?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  fecha     DateTime       @default(now())
+  total     Decimal
+  detalles  DetalleVenta[]
+
+  @@map("ventas")
+}
+
+model DetalleVenta {
+  id        Int     @id @default(autoincrement())
+  productoId Int
+  producto  Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  cantidad  Int
+  ventaId   Int
+  venta     Venta    @relation(fields: [ventaId], references: [id])
 }

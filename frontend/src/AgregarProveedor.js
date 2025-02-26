@@ -83,6 +83,32 @@ function AgregarProveedor() {
     }
   };
 
+  // Función para descargar los datos como CSV
+  const downloadCSV = () => {
+    const csvRows = [];
+    
+    // Cabeceras de las columnas
+    const headers = ['Nombre', 'Teléfono', 'Email', 'Dirección'];
+    csvRows.push(headers.join(','));
+
+    // Datos de los proveedores
+    proveedores.forEach((prov) => {
+      const row = [prov.nombre, prov.telefono, prov.email, prov.direccion];
+      csvRows.push(row.join(','));
+    });
+
+    // Crear un Blob de tipo CSV
+    const csvBlob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+
+    // Crear un enlace de descarga
+    const csvUrl = URL.createObjectURL(csvBlob);
+    const a = document.createElement('a');
+    a.href = csvUrl;
+    a.download = 'proveedores.csv';
+    a.click();
+    URL.revokeObjectURL(csvUrl); // Limpiar el enlace después de la descarga
+  };
+
   return (
     <div className="container">
       <h2>{editando ? 'Editar Proveedor' : 'Agregar Proveedor'}</h2>
@@ -107,6 +133,8 @@ function AgregarProveedor() {
       </form>
 
       <h2>Lista de Proveedores</h2>
+      <button onClick={downloadCSV}>Descargar CSV</button>
+
       <table border="1">
         <thead>
           <tr>
