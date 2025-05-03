@@ -1,21 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-
 const prisma = new PrismaClient();
 
-// Registrar una nueva venta
 router.post('/nueva', async (req, res) => {
-  const { usuarioId, productos } = req.body;
+  const { usuarioId, productos, total, metodoPago, pagoEfectivo, pagoTarjeta, montoPagado, cambio } = req.body;
 
-  if (!usuarioId || !productos || productos.length === 0) {
+  if (!usuarioId || !productos || productos.length === 0 || !total) {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
 
   try {
+    // 1. Crear la venta
     const venta = await prisma.venta.create({
       data: {
         usuarioId,
+        total,
+        metodoPago,
+        pagoEfectivo,
+        pagoTarjeta,
+        montoPagado,
+        cambio,
         detalles: {
           create: productos.map((p) => ({
             productoId: p.id,
@@ -25,9 +30,10 @@ router.post('/nueva', async (req, res) => {
         },
       },
       include: { detalles: true },
+      
     });
 
-    // Descontar stock de cada producto
+    // 2. Actualizar stock de productos
     for (const p of productos) {
       await prisma.producto.update({
         where: { id: p.id },
@@ -35,16 +41,32 @@ router.post('/nueva', async (req, res) => {
       });
     }
 
-    // Registrar log
+    // 3. Registrar log
     await prisma.log.create({
       data: {
         usuarioId,
         accion: 'Venta realizada',
         entidad: 'Venta',
         entidadId: venta.id,
-        detalles: `Productos vendidos: ${productos.map(p => `${p.nombre} (${p.cantidad})`).join(', ')}`,
+        detalles: `Venta de $${total} (${metodoPago})`,
       },
     });
+    
+
+    // 4. Actualizar total en caja (solo sumar el efectivo recibido)
+    const cajaHoy = await prisma.caja.findFirst({
+      orderBy: { fecha: 'desc' },
+    });
+
+    if (cajaHoy) {
+      await prisma.caja.update({
+        where: { id: cajaHoy.id },
+        data: {
+          totalVentas: { increment: total },
+          totalEnCaja: { increment: pagoEfectivo }, // SOLO suma efectivo
+        },
+      });
+    }
 
     res.status(201).json(venta);
   } catch (error) {

@@ -13,8 +13,8 @@ function Navbar() {
     <nav className="navbar">
       <ul className="navbar-menu">
         <li>
-          <Link to="/dashboard" className="navbar-link">
-            <FaTachometerAlt /> Dashboard
+          <Link to="/caja" className="navbar-link">
+            <FaTachometerAlt /> Caja
           </Link>
         </li>
         <li>

@@ -214,6 +214,30 @@ function Inventario() {
   const handleEdit = (producto) => {
     setEditProducto(producto);
   };
+  const exportToCSV = () => {
+    const encabezados = ['Codigo', 'Nombre', 'Precio', 'Stock', 'Proveedor', 'Categoría', 'Imagen URL', 'Stock Mínimo'];
+    const filas = productosFiltrados.map((producto) => [
+      producto.codigoBarras,
+      producto.nombre,
+      producto.precio,
+      producto.stock,
+      proveedores.find((p) => p.id === producto.proveedorId)?.nombre || 'N/A',
+      categorias.find((c) => c.id === producto.categoriaId)?.nombre || 'N/A',
+      producto.imagenUrl,
+      producto.stockMinimo,
+    ]);
+    const contenidoCSV = [encabezados, ...filas]
+      .map((fila) => fila.map((item) => `"${item}"`).join(','))
+      .join('\n');
+    const blob = new Blob([contenidoCSV], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'productos.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="container">
@@ -325,6 +349,9 @@ function Inventario() {
         
         <button type="submit">{editProducto ? 'Actualizar Producto' : 'Agregar Producto'}</button>
       </form>
+      <div style={{ marginBottom: '10px' }}>
+  <button onClick={exportToCSV}>Exportar a CSV</button>
+</div>
 
       {productosFiltrados.length === 0 ? (
         <p>No hay productos que coincidan con la búsqueda.</p>
@@ -345,27 +372,28 @@ function Inventario() {
             </tr>
           </thead>
           <tbody>
-            {productosFiltrados.map((producto) => (
-              <tr key={producto.id}>
-                <td>{producto.codigoBarras}</td>
-                <td>{producto.nombre}</td>
-                <td>${producto.precio}</td>
-                <td>{producto.stock}</td>
-                <td>{proveedores.find((p) => p.id === producto.proveedorId)?.nombre || 'N/A'}</td>
-                <td>{categorias.find((c) => c.id === producto.categoriaId)?.nombre || 'N/A' }</td>
-                <td><img src={producto.imagenUrl} alt={producto.nombre} width="100" height="100" /></td>
-                <td>{producto.stockMinimo}</td>
-                {usuarioRol === 'admin' && (
-                <td>
-                    <>
-                      <button className="edit-btn" onClick={() => handleEdit(producto)}>Editar</button>
-                      <button className="delete-btn" onClick={() => handleDelete(producto.id)}>Eliminar</button>
-                    </>
-                </td>
-               )}
-              </tr>
-            ))}
-          </tbody>
+  {productosFiltrados.map((producto) => {
+    const stockBajo = producto.stock <= producto.stockMinimo;
+    return (
+      <tr key={producto.id} className={stockBajo ? 'fila-bajo-stock' : ''}>
+        <td>{producto.codigoBarras}</td>
+        <td>{producto.nombre}</td>
+        <td>${producto.precio}</td>
+        <td>{producto.stock}</td>
+        <td>{proveedores.find((p) => p.id === producto.proveedorId)?.nombre || 'N/A'}</td>
+        <td>{categorias.find((c) => c.id === producto.categoriaId)?.nombre || 'N/A'}</td>
+        <td><img src={producto.imagenUrl} alt={producto.nombre} width="100" height="100" /></td>
+        <td>{producto.stockMinimo}</td>
+        {usuarioRol === 'admin' && (
+          <td>
+            <button className="edit-btn" onClick={() => handleEdit(producto)}>Editar</button>
+            <button className="delete-btn" onClick={() => handleDelete(producto.id)}>Eliminar</button>
+          </td>
+        )}
+      </tr>
+    );
+  })}
+</tbody>
         </table>
       )}
     </div>

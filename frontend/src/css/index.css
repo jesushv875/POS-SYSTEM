@@ -12,3 +12,10 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.fila-bajo-stock {
+  background-color: #ffe6e6 !important; /* color uniforme para toda la fila */
+  font-weight: bold;
+}
+
+

@@ -6,8 +6,10 @@ const proveedoresRoutes = require("./routes/proveedoresRoutes");
 const productosRoutes = require("./routes/productosRoutes");
 const usuariosRoutes = require('./routes/usuarios.routes');
 const logsRoutes = require('./routes/logsRoutes'); // Asegúrate de importar esto
-const ventasRoutes = require('./routes/ventas');
+const ventasRoutes = require('./routes/ventas'); // Asegúrate de que apunte al archivo correcto
 const categoriasRoutes = require('./routes/categoriasRoutes');
+const cajaRoutes = require('./routes/cajaRoutes');
+
 
 const app = express();
 
@@ -30,6 +32,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api', logsRoutes); // Esto debe existir para que /api/logs funcione
 app.use('/api/ventas', ventasRoutes);
 app.use('/api/categorias', categoriasRoutes); // ✅ Aquí usas la variable correctamente
+app.use('/api/caja', cajaRoutes);
 
 
 

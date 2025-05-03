@@ -1,14 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 function Ventas() {
   const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [carrito, setCarrito] = useState([]);
+  const [metodoPago, setMetodoPago] = useState('efectivo');
+  const [montoEfectivo, setMontoEfectivo] = useState('');
+  const [montoTarjeta, setMontoTarjeta] = useState('');
   const [pagoCliente, setPagoCliente] = useState('');
+  const [ventaFinalizada, setVentaFinalizada] = useState(null);
+  const ticketRef = useRef(null);
+  const [categorias, setCategorias] = useState([]);
+  const [usuarioId, setUsuarioId] = useState(null);
 
   useEffect(() => {
     obtenerProductos();
+    obtenerCategorias();
+    obtenerUsuarioId();
   }, []);
+
+  const obtenerUsuarioId = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const decoded = jwtDecode(token);
+      setUsuarioId(decoded.id);
+    }
+  };
 
   const obtenerProductos = async () => {
     try {
@@ -20,34 +38,40 @@ function Ventas() {
     }
   };
 
-  const handleBusqueda = (e) => {
-    setBusqueda(e.target.value);
+  const obtenerCategorias = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/categorias');
+      const data = await response.json();
+      setCategorias(data);
+    } catch (error) {
+      console.error('Error al obtener categorías:', error);
+    }
   };
+
+  const handleBusqueda = (e) => setBusqueda(e.target.value);
 
   const agregarAlCarrito = (producto) => {
     const cantidad = prompt(`¿Cuántas unidades de "${producto.nombre}" desea agregar?`);
     const cantidadInt = parseInt(cantidad, 10);
 
     if (isNaN(cantidadInt) || cantidadInt <= 0) {
-      alert('Ingrese una cantidad válida');
+      alert('Cantidad inválida');
       return;
     }
 
     const enCarrito = carrito.find((item) => item.id === producto.id);
     const cantidadEnCarrito = enCarrito ? enCarrito.cantidad : 0;
-    const totalDeseado = cantidadEnCarrito + cantidadInt;
+    const totalDisponible = producto.stock - cantidadEnCarrito;
 
-    if (totalDeseado > producto.stock) {
-      alert(`No puedes agregar más de ${producto.stock} unidades de "${producto.nombre}". Ya tienes ${cantidadEnCarrito} en el carrito.`);
+    if (cantidadInt > totalDisponible) {
+      alert(`Stock insuficiente. Solo puedes agregar ${totalDisponible} unidades más.`);
       return;
     }
 
     if (enCarrito) {
-      setCarrito(
-        carrito.map((item) =>
-          item.id === producto.id ? { ...item, cantidad: totalDeseado } : item
-        )
-      );
+      setCarrito(carrito.map((item) =>
+        item.id === producto.id ? { ...item, cantidad: item.cantidad + cantidadInt } : item
+      ));
     } else {
       setCarrito([...carrito, { ...producto, cantidad: cantidadInt }]);
     }
@@ -59,26 +83,146 @@ function Ventas() {
     setCarrito(nuevoCarrito);
   };
 
-  const calcularTotal = () => {
-    return carrito.reduce((total, item) => total + item.precio * item.cantidad, 0);
-  };
+  const calcularTotal = () => carrito.reduce((total, item) => total + item.precio * item.cantidad, 0);
 
   const calcularCambio = () => {
-    return pagoCliente ? parseFloat(pagoCliente) - calcularTotal() : 0;
+    let efectivo = metodoPago === 'mixto' ? parseFloat(montoEfectivo || 0) : parseFloat(pagoCliente || 0);
+    return efectivo - calcularTotal();
+  };
+
+  const finalizarVenta = async () => {
+    if (carrito.length === 0) {
+      alert('El carrito está vacío');
+      return;
+    }
+  
+    const totalVenta = calcularTotal();
+  
+    let efectivo = 0;
+    let tarjeta = 0;
+    let montoPagado = 0;
+  
+    if (metodoPago === 'efectivo') {
+      efectivo = parseFloat(pagoCliente);
+      montoPagado = efectivo;
+    } else if (metodoPago === 'tarjeta') {
+      tarjeta = parseFloat(pagoCliente);
+      montoPagado = tarjeta;
+    } else if (metodoPago === 'mixto') {
+      efectivo = parseFloat(montoEfectivo || 0);
+      tarjeta = parseFloat(montoTarjeta || 0);
+      montoPagado = efectivo + tarjeta;
+    }
+  
+    if (montoPagado < totalVenta) {
+      alert('El pago es insuficiente');
+      return;
+    }
+  
+    const cambioCalculado = montoPagado - totalVenta;
+  
+    const venta = {
+      usuarioId,
+      total: totalVenta,
+      metodoPago,
+      pagoEfectivo: efectivo,
+      pagoTarjeta: tarjeta,
+      montoPagado,
+      cambio: cambioCalculado,
+      productos: carrito.map((item) => ({
+        id: item.id,
+        cantidad: item.cantidad,
+        precio: item.precio,
+      })),
+    };
+  
+    try {
+      const response = await fetch('http://localhost:5001/api/ventas/nueva', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(venta),
+      });
+  
+      const data = await response.json();
+      setVentaFinalizada({
+        ...data,
+        productos: carrito,  // carrito tiene los nombres, ya que es un mapeo directo
+      });
+  
+      if (response.ok) {
+        alert('Venta registrada');
+        setVentaFinalizada(venta);
+        setCarrito([]);
+        setPagoCliente('');
+        setMontoEfectivo('');
+        setMontoTarjeta('');
+        setMetodoPago('efectivo');
+        obtenerProductos();
+      } else {
+        alert('Error al registrar la venta');
+      }
+    } catch (error) {
+      console.error('Error al registrar venta:', error);
+    }
+  };
+
+  const handlePrint = () => {
+    const ventana = window.open('', 'PRINT', 'height=400,width=300');
+    ventana.document.write('<html><head><title>Ticket</title>');
+    ventana.document.write('<style>body{ font-family: Arial; width: 250px; }</style>');
+    ventana.document.write('</head><body>');
+    ventana.document.write(ticketRef.current.innerHTML);
+    ventana.document.write('</body></html>');
+    ventana.document.close();
+    ventana.focus();
+    ventana.print();
+    ventana.close();
   };
 
   return (
     <div className="container">
       <h1>Punto de Venta</h1>
 
+      <input type="text" placeholder="Buscar producto..." value={busqueda} onChange={handleBusqueda} className="search-input" />
+
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Imagen</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {productos
+            .filter((producto) =>
+              producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+              producto.codigoBarras?.toLowerCase().includes(busqueda.toLowerCase())
+            )
+            .map((producto) => (
+              <tr key={producto.id} style={{ backgroundColor: producto.stock <= 5 ? 'lightcoral' : 'white' }}>
+                <td>{producto.codigoBarras}</td>
+                <td>{producto.nombre}</td>
+                <td>{categorias.find(cat => cat.id === producto.categoriaId)?.nombre || 'Sin categoría'}</td>
+                <td>${producto.precio}</td>
+                <td>{producto.stock}</td>
+                <td><img src={producto.imagenUrl} alt={producto.nombre} width="50" height="50" /></td>
+                <td><button onClick={() => agregarAlCarrito(producto)}>Agregar</button></td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+
       <h2>Carrito</h2>
-      {carrito.length === 0 ? (
-        <p>No hay productos en el carrito.</p>
-      ) : (
+      {carrito.length === 0 ? <p>No hay productos en el carrito.</p> : (
         <table border="1">
           <thead>
             <tr>
-              <th>Nombre</th>
+              <th>Producto</th>
               <th>Cantidad</th>
               <th>Precio</th>
               <th>Subtotal</th>
@@ -91,64 +235,73 @@ function Ventas() {
                 <td>{item.nombre}</td>
                 <td>{item.cantidad}</td>
                 <td>${item.precio}</td>
-                <td>${item.precio * item.cantidad}</td>
-                <td>
-                  <button onClick={() => eliminarDelCarrito(index)}>Eliminar</button>
-                </td>
+                <td>${(item.precio * item.cantidad).toFixed(2)}</td>
+                <td><button onClick={() => eliminarDelCarrito(index)}>Eliminar</button></td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
-      <h3>Total: ${calcularTotal()}</h3>
-      <input
-        type="number"
-        placeholder="Pago del cliente"
-        value={pagoCliente}
-        onChange={(e) => setPagoCliente(e.target.value)}
-      />
-      <h3>Cambio: ${calcularCambio()}</h3>
+      <h3>Total: ${calcularTotal().toFixed(2)}</h3>
 
-      <input
-        type="text"
-        placeholder="Buscar producto por nombre o código de barras..."
-        value={busqueda}
-        onChange={handleBusqueda}
-        className="search-input"
-      />
+      <div>
+        <label>Método de pago: </label>
+        <select value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}>
+          <option value="efectivo">Efectivo</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="mixto">Mixto</option>
+        </select>
+      </div>
 
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Imagen</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {productos
-            .filter((producto) =>
-              producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-              producto.codigoBarras.toLowerCase().includes(busqueda.toLowerCase())
-            )
-            .map((producto) => (
-              <tr key={producto.id}>
-                <td>{producto.codigoBarras}</td>
-                <td>{producto.nombre}</td>
-                <td>${producto.precio}</td>
-                <td>{producto.stock}</td>
-                <td><img src={producto.imagenUrl} alt={producto.nombre} width="100" height="100" /></td>
-                <td>
-                  <button onClick={() => agregarAlCarrito(producto)}>Agregar</button>
-                </td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
+      {metodoPago === 'efectivo' && (
+        <div>
+          <input type="number" placeholder="Pago en efectivo" value={pagoCliente} onChange={(e) => setPagoCliente(e.target.value)} />
+        </div>
+      )}
+
+      {metodoPago === 'tarjeta' && (
+        <div>
+          <input type="number" placeholder="Pago con tarjeta" value={pagoCliente} onChange={(e) => setPagoCliente(e.target.value)} />
+        </div>
+      )}
+
+      {metodoPago === 'mixto' && (
+        <div>
+          <input type="number" placeholder="Efectivo" value={montoEfectivo} onChange={(e) => setMontoEfectivo(e.target.value)} />
+          <input type="number" placeholder="Tarjeta" value={montoTarjeta} onChange={(e) => setMontoTarjeta(e.target.value)} />
+        </div>
+      )}
+
+      <h3>Cambio: ${calcularCambio().toFixed(2)}</h3>
+      <button onClick={finalizarVenta}>Finalizar Venta</button>
+
+      {ventaFinalizada && (
+  <div>
+    <h2>Ticket de Compra</h2>
+    <div ref={ticketRef} style={{ width: '250px', textAlign: 'center', fontSize: '12px' }}>
+      <h3>*** TICKET DE COMPRA ***</h3>
+      <p>Fecha: {new Date().toLocaleString()}</p>
+      <hr />
+      {ventaFinalizada.productos.map((item, idx) => (
+        <div key={idx} style={{ marginBottom: '5px' }}>
+          <p style={{ margin: '2px 0' }}>
+            {item.nombre} x{item.cantidad} @ ${item.precio.toFixed(2)}
+          </p>
+          <p style={{ margin: '0 0 5px 0' }}>Subtotal: ${(item.precio * item.cantidad).toFixed(2)}</p>
+        </div>
+      ))}
+      <hr />
+      <p><strong>Total: ${ventaFinalizada.total.toFixed(2)}</strong></p>
+      <p>Método: {ventaFinalizada.metodoPago}</p>
+      <p>Pagado: ${ventaFinalizada.montoPagado?.toFixed(2)}</p>
+      <p>Cambio: ${ventaFinalizada.cambio?.toFixed(2)}</p>
+      <hr />
+      <p>¡Gracias por su compra!</p>
+    </div>
+    <button onClick={handlePrint}>Imprimir Ticket</button>
+  </div>
+)}
     </div>
   );
 }
