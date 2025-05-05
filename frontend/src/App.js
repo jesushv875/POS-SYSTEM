@@ -1,83 +1,120 @@
 import './css/App.css';
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Inventario from './Inventario';
-import Home from './Home';
-import Navbar from './components/Navbar';
-import Login from './components/Login';
 import AgregarProveedor from './AgregarProveedor'; 
 import Usuarios from './pages/Usuarios';
 import Configuracion from './Configuracion';
-import { jwtDecode } from 'jwt-decode';
 import Ventas from './pages/Ventas';
+import Caja from './pages/Caja';
+import Navbar from './components/Navbar';
+import Login from './components/Login';
+import AutoLogoutModal from './components/AutoLogoutModal';
+import { jwtDecode } from 'jwt-decode';
 import useAutoLogout from './useAutoLogout';
-import Caja from './pages/Caja'; // 👈 Agrega la importación
 
-// Componente que llama al hook una vez dentro del contexto del Router
-function AutoLogoutHandler() {
-  useAutoLogout(); // Aquí sí es seguro usar useNavigate()
-  return null;
+function AppWrapper() {
+  return (
+    <Router>
+      <App />
+    </Router>
+  );
 }
 
 function App() {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [usuarioId, setUsuarioId] = useState(null);
-  const token = localStorage.getItem('token');
+  const [usuarioAuth, setUsuarioAuth] = useState({ id: null, nombre: '', rol: '' });
 
-  const getUserIdFromToken = (token) => {
-    try {
-      const decoded = jwtDecode(token);
-      return decoded.userId;
-    } catch (error) {
-      console.error('Error al decodificar el token:', error);
-      return null;
-    }
-  };
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    navigate('/login');
+  }, [navigate]);
+
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      setIsAuthenticated(true);
-      const userId = getUserIdFromToken(token);
-      setUsuarioId(userId);
+      try {
+        const decoded = jwtDecode(token);
+        console.log(decoded); // Para verificar qué contiene el token
+        setUsuarioAuth({
+          id: decoded.id,
+          nombre: decoded.nombre, // Esto debería funcionar si el nombre está en el token
+          rol: decoded.rol,
+          correo:decoded.correo
+        });
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error('Token inválido', e);
+      }
     }
-  }, []);
+  }, [token]);
 
   const handleLogin = () => {
-    setIsAuthenticated(true);
-    const token = localStorage.getItem('token');
-    if (token) {
-      const userId = getUserIdFromToken(token);
-      setUsuarioId(userId);
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      try {
+        const decoded = jwtDecode(storedToken);
+        setUsuarioAuth({
+          id: decoded.id,
+          nombre: decoded.nombre,
+          rol: decoded.rol,
+        });
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error('Token inválido', e);
+      }
     }
   };
 
+  const { showWarning, setShowWarning, resetTimers } = useAutoLogout(
+  //  10 * 1000,  // 10 segundos de inactividad
+   // 5 * 1000,    // 5 segundos antes del cierre (advertencia)
+  5 * 60 * 1000,
+  60 * 1000,
+    isAuthenticated ? handleLogout : null
+  );
+
   return (
-    <Router>
-      <AutoLogoutHandler /> {/* Hook ahora está dentro del contexto del Router */}
+    <>
       {isAuthenticated && <Navbar />}
+      {showWarning && (
+  <AutoLogoutModal
+    nombre={usuarioAuth.nombre}
+    correo={usuarioAuth.correo}
+    onStay={() => {
+      resetTimers();
+      setShowWarning(false);
+    }}
+    onLogout={handleLogout}
+  />
+)}
       <Routes>
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <div>
-                <h1>Bienvenido al sistema de punto de venta</h1>
-              </div>
+              <div style={{ padding: '20px', fontSize: '20px' }}>
+  Hola, <strong>{usuarioAuth.nombre || 'Cargando...'}</strong>. Bienvenido al sistema.
+</div>
             ) : (
               <Login onLogin={handleLogin} />
             )
           }
         />
-        <Route path="/inventario" element={isAuthenticated ? <Inventario usuarioId={usuarioId} /> : <Login onLogin={handleLogin} />} />
-        <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Login onLogin={handleLogin} />} />
-        <Route path="/usuarios" element={isAuthenticated ? <Usuarios /> : <Login onLogin={handleLogin} />} />
-        <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Login onLogin={handleLogin} />} />
-        <Route path="/ventas" element={isAuthenticated ? <Ventas /> : <Login onLogin={handleLogin} />} />
-        <Route path="/caja" element={isAuthenticated ? <Caja /> : <Login onLogin={handleLogin} />} />
+        <Route path="/inventario" element={isAuthenticated ? <Inventario usuarioId={usuarioAuth.id} /> : <Navigate to="/login" />} />
+        <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Navigate to="/login" />} />
+        <Route path="/usuarios" element={isAuthenticated ? <Usuarios /> : <Navigate to="/login" />} />
+        <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Navigate to="/login" />} />
+        <Route path="/ventas" element={isAuthenticated ? <Ventas /> : <Navigate to="/login" />} />
+        <Route path="/caja" element={isAuthenticated ? <Caja /> : <Navigate to="/login" />} />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
       </Routes>
-    </Router>
+    </>
   );
 }
 
-export default App;
+export default AppWrapper;

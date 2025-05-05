@@ -23,18 +23,18 @@ function Inventario() {
   const [editProducto, setEditProducto] = useState(null);
 
  // const usuarioRol = 'admin';
-      const [isAuthenticated, setIsAuthenticated] = useState(false);
+     // const [isAuthenticated, setIsAuthenticated] = useState(false);
       //const [usuarioId, setUsuarioId] = useState(null); // Estado para almacenar el usuarioId
-      const token = localStorage.getItem('token');
+     // const token = localStorage.getItem('token');
       const [usuarioId, setUsuarioId] = useState(null);
       const [usuarioRol, setUsuarioRol] = useState(null);
     
     // Mostrar el token en la consola si está disponible
-    if (token) {
-      const decodedToken = jwtDecode(token);  // Decodificar el token
-    } else {
-      console.error('No token inventario');
-    }
+    //if (token) {
+     // const decodedToken = jwtDecode(token);  // Decodificar el token
+    //} else {
+     // console.error('No token inventario');
+    //}
     useEffect(() => {
       const token = localStorage.getItem('token');
     

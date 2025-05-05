@@ -4,31 +4,31 @@ const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
 
-// Controlador para manejar el inicio de sesión
+// Inicio de sesión
 const login = async (req, res) => {
   const { email, password } = req.body;
-
   try {
-    // Buscar al usuario por su correo
     const usuario = await prisma.usuario.findUnique({
       where: { correo: email },
     });
 
-    // Validar si el usuario existe
     if (!usuario) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    // Verificar la contraseña
     const validPassword = await bcrypt.compare(password, usuario.password);
     if (!validPassword) {
       return res.status(401).json({ message: 'Contraseña incorrecta' });
     }
 
-    // Generar el token JWT
     const token = jwt.sign(
-      { id: usuario.id, rol: usuario.rol },
-      'tu_secreto_jwt', // Cambia esto por una clave secreta más segura
+      {
+        id: usuario.id,
+        rol: usuario.rol,
+        correo: usuario.correo,
+        nombre: usuario.nombre
+      },
+      'tu_secreto_jwt',
       { expiresIn: '1h' }
     );
 
@@ -39,4 +39,30 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { login };  // Asegúrate de exportar la función
+// Verificación de contraseña sin iniciar sesión
+const verifyPassword = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { correo: email },
+    });
+
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    const validPassword = await bcrypt.compare(password, usuario.password);
+
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Contraseña incorrecta' });
+    }
+
+    res.json({ message: 'Contraseña válida' });
+  } catch (error) {
+    console.error('Error al verificar contraseña:', error);
+    res.status(500).json({ message: 'Error en el servidor' });
+  }
+};
+
+module.exports = { login, verifyPassword };

@@ -1,48 +1,46 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
-const useAutoLogout = (timeout = 5 * 60 * 1000, warningTime = 60 * 1000) => {
-  const navigate = useNavigate();
+const useAutoLogout = (timeout = 300000, warningTime = 60000, onLogout) => {
   const logoutTimeout = useRef(null);
   const warningTimeout = useRef(null);
   const [showWarning, setShowWarning] = useState(false);
 
-  const logout = () => {
-    localStorage.removeItem('token'); // o lo que uses
-    alert('Sesión cerrada por inactividad');
-    navigate('/');
-  };
+  const logout = useCallback(() => {
+    if (typeof onLogout === 'function') {
+      onLogout();
+    }
+  }, [onLogout]);
 
-  const resetTimers = () => {
-    // Cancelar si hay temporizadores activos
-    if (logoutTimeout.current) clearTimeout(logoutTimeout.current);
-    if (warningTimeout.current) clearTimeout(warningTimeout.current);
+  const resetTimers = useCallback(() => {
+    if (showWarning) return; // 👈 NO reiniciar si el modal está activo
 
-    setShowWarning(false); // Ocultar modal si estaba mostrándose
+    clearTimeout(logoutTimeout.current);
+    clearTimeout(warningTimeout.current);
+    setShowWarning(false);
 
-    // Iniciar nuevo warning
     warningTimeout.current = setTimeout(() => {
       setShowWarning(true);
     }, timeout - warningTime);
 
-    // Iniciar nuevo logout
     logoutTimeout.current = setTimeout(() => {
       logout();
     }, timeout);
-  };
+  }, [logout, timeout, warningTime, showWarning]);
 
   useEffect(() => {
-    const eventos = ['mousemove', 'keydown', 'mousedown', 'scroll', 'touchstart'];
-    eventos.forEach((e) => window.addEventListener(e, resetTimers));
+    if (!onLogout) return;
 
-    resetTimers(); // Iniciar temporizador al montar
+    const events = ['mousemove', 'keydown', 'mousedown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, resetTimers));
+
+    resetTimers();
 
     return () => {
-      eventos.forEach((e) => window.removeEventListener(e, resetTimers));
+      events.forEach(e => window.removeEventListener(e, resetTimers));
       clearTimeout(logoutTimeout.current);
       clearTimeout(warningTimeout.current);
     };
-  }, []);
+  }, [resetTimers, onLogout]);
 
   return { showWarning, setShowWarning, resetTimers };
 };

@@ -11,14 +11,14 @@ function Usuarios() {
     rol: 'usuario',
   });
   const [editUsuario, setEditUsuario] = useState(null);
-  const [usuarioAuth, setUsuarioAuth] = useState({ id: null, rol: null });
+  const [usuarioAuth, setUsuarioAuth] = useState({ id: null, nombre:null, rol: null});
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        setUsuarioAuth({ id: decoded.id, rol: decoded.rol });
+        setUsuarioAuth({ id: decoded.id, nombre: decoded.nombre, rol: decoded.rol });
       } catch (error) {
         console.error('Error al decodificar el token:', error);
       }

@@ -1,63 +1,68 @@
 import React, { useState } from 'react';
-import '../css/App.css'; 
+import { useNavigate } from 'react-router-dom';
 
 function Login({ onLogin }) {
-  const [credentials, setCredentials] = useState({
-    email: '',
-    password: '',
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setCredentials((prev) => ({ ...prev, [name]: value }));
-  };
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const response = await fetch('http://localhost:5001/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      // Guardar el token en el localStorage
-      localStorage.setItem('token', data.token);
-      onLogin();  // Llama a la función onLogin para manejar el estado de la sesión
-      alert(data.message);
-    } else {
-      alert(data.message);
+    try {
+      const response = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+    
+      const text = await response.text(); // 👈 lee el cuerpo como texto
+      console.log('Respuesta del servidor:', text);
+      
+    
+      // Intenta convertir a JSON (pero solo si es seguro hacerlo)
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (jsonError) {
+        throw new Error('La respuesta no es JSON válido: ' + text);
+      }
+    
+      if (response.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        onLogin();
+        navigate('/');
+      } else {
+        alert('Credenciales incorrectas');
+      }
+    } catch (error) {
+      console.error('Error al iniciar sesión:', error);
+      alert('Hubo un error al iniciar sesión');
     }
   };
 
   return (
-    <div className="container">
-    <form onSubmit={handleSubmit}>
-      <div> 
-        <label>Email:</label>
+    <div className="login-container">
+      <h2>Iniciar Sesión</h2>
+      <form onSubmit={handleSubmit}>
         <input
           type="email"
-          name="email"
-          value={credentials.email}
-          onChange={handleChange}
+          placeholder="Correo electrónico"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
-      </div>
-      <div>
-        <label>Password:</label>
         <input
           type="password"
-          name="password"
-          value={credentials.password}
-          onChange={handleChange}
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
         />
-      </div>
-      <button type="submit">Login</button>
-    </form>
+        <button type="submit">Entrar</button>
+      </form>
     </div>
   );
 }
