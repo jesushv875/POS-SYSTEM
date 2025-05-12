@@ -12,6 +12,8 @@ import Login from './components/Login';
 import AutoLogoutModal from './components/AutoLogoutModal';
 import { jwtDecode } from 'jwt-decode';
 import useAutoLogout from './useAutoLogout';
+import Entradas from './pages/Entradas';
+import Salidas from './pages/Salidas';
 
 function AppWrapper() {
   return (
@@ -24,6 +26,7 @@ function AppWrapper() {
 function App() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const [usuarioAuth, setUsuarioAuth] = useState({ id: null, nombre: '', rol: '' });
 
   const handleLogout = useCallback(() => {
@@ -32,26 +35,25 @@ function App() {
     navigate('/login');
   }, [navigate]);
 
-  const token = localStorage.getItem('token');
-
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        console.log(decoded); // Para verificar qué contiene el token
         setUsuarioAuth({
           id: decoded.id,
-          nombre: decoded.nombre, // Esto debería funcionar si el nombre está en el token
+          nombre: decoded.nombre,
           rol: decoded.rol,
-          correo:decoded.correo
+          correo: decoded.correo
         });
         setIsAuthenticated(true);
       } catch (e) {
         console.error('Token inválido', e);
+        localStorage.removeItem('token');
       }
     }
-  }, [token]);
+    setLoadingAuth(false);
+  }, []);
 
   const handleLogin = () => {
     const storedToken = localStorage.getItem('token');
@@ -71,35 +73,37 @@ function App() {
   };
 
   const { showWarning, setShowWarning, resetTimers } = useAutoLogout(
-  //  10 * 1000,  // 10 segundos de inactividad
-   // 5 * 1000,    // 5 segundos antes del cierre (advertencia)
-  5 * 60 * 1000,
-  60 * 1000,
+    5 * 60 * 1000,
+    60 * 1000,
     isAuthenticated ? handleLogout : null
   );
+
+  if (loadingAuth) {
+    return <div>Cargando sesión...</div>;
+  }
 
   return (
     <>
       {isAuthenticated && <Navbar />}
       {showWarning && (
-  <AutoLogoutModal
-    nombre={usuarioAuth.nombre}
-    correo={usuarioAuth.correo}
-    onStay={() => {
-      resetTimers();
-      setShowWarning(false);
-    }}
-    onLogout={handleLogout}
-  />
-)}
+        <AutoLogoutModal
+          nombre={usuarioAuth.nombre}
+          correo={usuarioAuth.correo}
+          onStay={() => {
+            resetTimers();
+            setShowWarning(false);
+          }}
+          onLogout={handleLogout}
+        />
+      )}
       <Routes>
         <Route
           path="/"
           element={
             isAuthenticated ? (
               <div style={{ padding: '20px', fontSize: '20px' }}>
-  Hola, <strong>{usuarioAuth.nombre || 'Cargando...'}</strong>. Bienvenido al sistema.
-</div>
+                Hola, <strong>{usuarioAuth.nombre || 'Cargando...'}</strong>. Bienvenido al sistema.
+              </div>
             ) : (
               <Login onLogin={handleLogin} />
             )
@@ -111,6 +115,11 @@ function App() {
         <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Navigate to="/login" />} />
         <Route path="/ventas" element={isAuthenticated ? <Ventas /> : <Navigate to="/login" />} />
         <Route path="/caja" element={isAuthenticated ? <Caja /> : <Navigate to="/login" />} />
+
+        {/* ✅ Nuevas rutas de entradas y salidas protegidas */}
+        <Route path="/entradas" element={isAuthenticated ? <Entradas /> : <Navigate to="/login" />} />
+        <Route path="/salidas" element={isAuthenticated ? <Salidas /> : <Navigate to="/login" />} />
+
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
       </Routes>
     </>

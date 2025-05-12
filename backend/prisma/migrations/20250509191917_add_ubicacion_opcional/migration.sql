@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Producto" ALTER COLUMN "anaquel" DROP NOT NULL,
+ALTER COLUMN "pasillo" DROP NOT NULL,
+ALTER COLUMN "piso" DROP NOT NULL;

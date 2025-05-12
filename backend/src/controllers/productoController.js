@@ -2,18 +2,21 @@
 const prisma = require('../prismaClient');  // Asegúrate de que esta ruta es correcta
 
 async function crearProducto(req, res) {
-  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo } = req.body;
+  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo, pasillo, anaquel, piso } = req.body;
   
   try {
     const producto = await prisma.producto.create({
       data: { 
         nombre, 
         precio: parseFloat(precio), 
-        stock: parseInt(stock), 
+        stock: stock ? parseInt(stock) : null,
         proveedorId: parseInt(proveedorId),
         categoriaId: categoriaId ? parseInt(categoriaId) : null,
         codigoBarras,
         imagenUrl,
+        pasillo,
+        anaquel,
+        piso,
         stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
       },
     });
@@ -55,7 +58,7 @@ async function obtenerProductoPorId(req, res) {
 // Actualizar un producto
 async function actualizarProducto(req, res) {
   const { id } = req.params;
-  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo } = req.body;
+  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo, pasillo, anaquel, piso } = req.body;
 
   try {
     const producto = await prisma.producto.update({
@@ -63,12 +66,15 @@ async function actualizarProducto(req, res) {
       data: { 
         nombre, 
         precio: parseFloat(precio), 
-        stock: parseInt(stock), 
+        stock: stock ? parseInt(stock) : null,
         proveedorId: proveedorId ? parseInt(proveedorId) : null,
         categoriaId: categoriaId ? parseInt(categoriaId) : null,
         codigoBarras,
         imagenUrl,
         stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
+        pasillo,
+        anaquel,
+        piso,
       },
     });
     res.json(producto);

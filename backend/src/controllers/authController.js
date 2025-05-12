@@ -64,5 +64,30 @@ const verifyPassword = async (req, res) => {
     res.status(500).json({ message: 'Error en el servidor' });
   }
 };
+// Al final de tu archivo
+const verificarToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ message: 'Token no proporcionado' });
+  }
 
-module.exports = { login, verifyPassword };
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Token mal formado' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, 'tu_secreto_jwt');
+    req.usuario = decoded;
+    next();
+  } catch (error) {
+    console.error('Error al verificar token:', error);
+    return res.status(403).json({ message: 'Token inválido' });
+  }
+};
+
+module.exports = { 
+  login, 
+  verifyPassword, 
+  verificarToken 
+};

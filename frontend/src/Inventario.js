@@ -19,6 +19,9 @@ function Inventario() {
     imagen: '',
     categoriaId: '',
     imagenUrl: '',
+    pasillo: '',
+    anaquel: '',
+    piso: '',
   });
   const [editProducto, setEditProducto] = useState(null);
 
@@ -128,9 +131,19 @@ function Inventario() {
       let data;
   
       const productoData = editProducto || nuevoProducto;
-      const producto = { 
-        ...productoData, 
-        usuarioId // Incluir usuarioId directamente desde decodedToken
+      const producto = {
+        usuarioId,
+        nombre: productoData.nombre,
+        precio: parseFloat(productoData.precio),
+        proveedorId: parseInt(productoData.proveedorId),
+        categoriaId: productoData.categoriaId !== '' ? parseInt(productoData.categoriaId) : null,
+        codigoBarras: productoData.codigoBarras,
+        imagenUrl: productoData.imagenUrl,
+        stockMinimo: productoData.stockMinimo ? parseInt(productoData.stockMinimo) : 0,
+        pasillo: productoData.pasillo,
+        anaquel: productoData.anaquel,
+        piso: productoData.piso,
+        stock: productoData.stock ? parseInt(productoData.stock) : 0,
       };
       if (usuarioId) {
         console.log("Decoded Token:", decodedToken.id); // Verificar qué contiene el token
@@ -163,7 +176,19 @@ function Inventario() {
         alert(editProducto ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         fetchData();
         setEditProducto(null);
-        setNuevoProducto({ nombre: '', precio: '', stock: '', proveedorId: '', categoriaId: '', codigoBarras: '', imagenUrl: '', stockMinimo: ''});
+        setNuevoProducto({
+          nombre: '',
+          precio: '',
+          stock: '',
+          proveedorId: '',
+          categoriaId: '',
+          codigoBarras: '',
+          imagenUrl: '',
+          stockMinimo: '',
+          pasillo: '',
+          anaquel: '',
+          piso: '',
+        });
       } else {
         alert('Error: ' + data.message);
       }
@@ -215,7 +240,7 @@ function Inventario() {
     setEditProducto(producto);
   };
   const exportToCSV = () => {
-    const encabezados = ['Codigo', 'Nombre', 'Precio', 'Stock', 'Proveedor', 'Categoría', 'Imagen URL', 'Stock Mínimo'];
+    const encabezados = ['Codigo', 'Nombre', 'Precio', 'Stock', 'Proveedor', 'Categoría', 'Stock Mínimo'];
     const filas = productosFiltrados.map((producto) => [
       producto.codigoBarras,
       producto.nombre,
@@ -223,7 +248,6 @@ function Inventario() {
       producto.stock,
       proveedores.find((p) => p.id === producto.proveedorId)?.nombre || 'N/A',
       categorias.find((c) => c.id === producto.categoriaId)?.nombre || 'N/A',
-      producto.imagenUrl,
       producto.stockMinimo,
     ]);
     const contenidoCSV = [encabezados, ...filas]
@@ -252,6 +276,10 @@ function Inventario() {
         className="search-input"
       />
 
+      <div style={{ marginBottom: '15px' }}>
+        <button onClick={() => window.location.href = '/entradas'}>Entradas</button>
+        <button onClick={() => window.location.href = '/salidas'} style={{ marginLeft: '10px' }}>Salidas</button>
+      </div>
       <h2>{editProducto ? 'Editar Producto' : 'Agregar Producto'}</h2>
       <form onSubmit={handleSubmit}>
         <div>
@@ -291,7 +319,7 @@ function Inventario() {
             name="stock"
             value={editProducto ? editProducto.stock : nuevoProducto.stock}
             onChange={handleChange}
-            required
+            disabled
           />
         </div>
         <div>
@@ -321,6 +349,35 @@ function Inventario() {
             onChange={handleChange}
           />
         </div>
+        <label>Ubicación</label>
+<div style={{ display: 'flex', gap: '15px', alignItems: 'center' }} className="ubicacion-contenedor">
+  <label>Pasillo</label>
+  <input 
+    type="text"
+    name="pasillo"
+    value={editProducto ? editProducto.pasillo : nuevoProducto.pasillo}
+    onChange={handleChange}
+    className="ubicacion"
+  />
+
+  <label>Anaquel</label>
+  <input 
+    type="text"
+    name="anaquel"
+    value={editProducto ? editProducto.anaquel : nuevoProducto.anaquel}
+    onChange={handleChange}
+    className="ubicacion"
+  />
+
+  <label>Piso</label>
+  <input 
+    type="text"
+    name="piso"
+    value={editProducto ? editProducto.piso : nuevoProducto.piso}
+    onChange={handleChange}
+    className="ubicacion"
+  />
+</div>
           <label>Imagen url:</label>
           <input
             type="text"
@@ -330,7 +387,7 @@ function Inventario() {
           />
         </div>
         <div>
-          <label>Proveedor:</label>
+          <label>Categoría:</label>
           <select
             name="categoriaId"
             value={editProducto ? editProducto.categoriaId : nuevoProducto.categoriaId}

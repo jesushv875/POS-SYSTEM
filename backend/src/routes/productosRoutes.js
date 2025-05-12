@@ -22,8 +22,7 @@ const authenticateToken = (req, res, next) => {
 router.get('/', async (req, res) => {
   try {
     const productos = await prisma.producto.findMany({
-      include: { proveedor: true }, // Opcional si quieres incluir el nombre del proveedor
-      include: { categoria: true},
+      include: { proveedor: true, categoria: true },
     });
     res.json(productos); // Devuelve los productos al frontend
   } catch (error) {
@@ -34,11 +33,12 @@ router.get('/', async (req, res) => {
 
 // Ruta para agregar un producto
 router.post('/agregar', async (req, res) => {
-  const { nombre, precio, stock, proveedorId, usuarioId, categoriaId, codigoBarras, imagenUrl, stockMinimo } = req.body;
+  console.log('REQ BODY:', req.body);
+  const { nombre, precio, stock, proveedorId, usuarioId, categoriaId, codigoBarras, imagenUrl, stockMinimo, pasillo, anaquel, piso } = req.body;
 
   // Validación de datos
-  if (!nombre || !precio || !stock || !proveedorId || !usuarioId) {
-    return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  if (!nombre || !precio || !proveedorId || !usuarioId) {
+    return res.status(400).json({ message: 'Todos los campos obligatorios deben estar completos' });
   }
 
   try {
@@ -47,12 +47,15 @@ router.post('/agregar', async (req, res) => {
       data: {
         nombre,
         precio: parseFloat(precio),
-        stock: parseInt(stock),
+        stock: stock ? parseInt(stock) : null,
         proveedorId: parseInt(proveedorId),
-        categoriaId: categoriaId ? parseInt(categoriaId) : null, // Asegurar que se almacena correctamente
+        categoriaId: categoriaId ? parseInt(categoriaId) : null,
         codigoBarras,
         imagenUrl,
         stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
+        pasillo,
+        anaquel,
+        piso,
       },
     });
 
@@ -114,7 +117,7 @@ router.delete("/:id", async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo, usuarioId } = req.body;
+  const { nombre, precio, stock, proveedorId, categoriaId, codigoBarras, imagenUrl, stockMinimo, usuarioId, pasillo, anaquel, piso } = req.body;
 
   try {
     const productoActualizado = await prisma.producto.update({
@@ -122,12 +125,15 @@ router.put('/:id', async (req, res) => {
       data: {
         nombre,
         precio: parseFloat(precio),
-        stock: parseInt(stock),
+        stock: stock ? parseInt(stock) : null,
         proveedorId: proveedorId ? parseInt(proveedorId) : null,
         categoriaId: categoriaId ? parseInt(categoriaId) : null,
         codigoBarras,
         imagenUrl,
         stockMinimo: stockMinimo ? parseInt(stockMinimo) : null,
+        pasillo,
+        anaquel,
+        piso,
       },
     });
 

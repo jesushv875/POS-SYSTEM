@@ -50,14 +50,15 @@ h1 {
   color: #444;
   margin-top: 20px;
 }
+.disabled-input {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
 
 .container {
-  max-width: 800px;
-  margin: 20px auto;
+  max-width: 1000px;
+  margin: auto;
   padding: 20px;
-  background-color: #fff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
 }
 
 /* Botones y enlaces */
@@ -162,7 +163,15 @@ tbody tr:nth-child(even) {
   border-radius: 4px;
   font-size: 14px;
 }
+.ubicacion {
+  width: 100px; /* reducido */
+  padding: 5px;
+  font-size: 14px;
+}
 
+.ubicacion-contenedor label {
+  margin-right: 5px;
+}
 .login-container input[type="submit"] {
   background-color: #4CAF50;
   color: white;
@@ -183,6 +192,7 @@ tbody tr:nth-child(even) {
 }
 .styled-select {
   width: 93%;
+  min-width: 200px;
   padding: 10px;
   font-size: 16px;
   border: 2px solid #ccc;
@@ -249,11 +259,6 @@ tbody tr:nth-child(even) {
   border-radius: 5px;
   margin-bottom: 20px;
 }
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 20px;
-}
 
 .filters {
   display: flex;
@@ -261,4 +266,8 @@ tbody tr:nth-child(even) {
   margin-bottom: 20px;
 }
 
-
+.ubicacion-contenedor {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
