@@ -4,6 +4,7 @@ const inventarioController = require('../controllers/inventarioController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const logController = require('../controllers/logController'); // 👈 Importar logController
 
 // Configuración de almacenamiento para multer
 const storage = multer.diskStorage({
@@ -21,9 +22,39 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ✅ Registrar entrada
-router.post('/entrada', upload.single('imagen'), inventarioController.registrarEntrada);
+router.post('/entrada', upload.single('imagen'), async (req, res) => {
+  try {
+    const movimiento = await inventarioController.registrarEntrada(req, res, true);
+    if (movimiento && movimiento.id) {
+      await logController.registrarLog({
+        usuarioId: movimiento.usuarioId,
+        accion: `Entrada registrada ID: ${movimiento.id} Motivo: ${movimiento.motivo}`,
+      });
+    }
+  } catch (error) {
+    console.error('Error al registrar entrada con log:', error);
+  }
+});
 
 // ✅ Registrar salida
-router.post('/salida', upload.single('imagen'), inventarioController.registrarSalida);
+router.post('/salida', upload.single('imagen'), async (req, res) => {
+  try {
+    const movimiento = await inventarioController.registrarSalida(req, res, true);
+    if (movimiento && movimiento.id) {
+      await logController.registrarLog({
+        usuarioId: movimiento.usuarioId,
+        accion: `Salida registrada ID: ${movimiento.id} Motivo: ${movimiento.motivo}`,
+      });
+    }
+  } catch (error) {
+    console.error('Error al registrar salida con log:', error);
+  }
+});
+
+// ✅ Obtener entradas
+router.get('/entradas', inventarioController.obtenerEntradas);
+
+// ✅ Obtener salidas
+router.get('/salidas', inventarioController.obtenerSalidas);
 
 module.exports = router;

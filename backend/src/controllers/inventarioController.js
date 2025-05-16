@@ -7,6 +7,8 @@ exports.registrarMovimiento = async (req, res, tipo) => {
   try {
     console.log('BODY COMPLETO:', req.body);
 
+    console.log('Datos recibidos en el body:', req.body);
+
     const { productoId, motivo, cantidad, comentario, usuarioId } = req.body;
 
     console.log('UsuarioId recibido:', usuarioId);
@@ -40,7 +42,7 @@ if (!usuarioId || isNaN(parseInt(usuarioId))) {
     }
 
     // Registrar movimiento
-    await prisma.movimientoInventario.create({
+    const movimiento = await prisma.movimientoInventario.create({
       data: {
         tipo,
         motivo,
@@ -70,6 +72,38 @@ if (!usuarioId || isNaN(parseInt(usuarioId))) {
     res.status(500).json({ message: 'Error al procesar movimiento.' });
   }
 };
+
+// inventarioController.js
+
+
+exports.obtenerEntradas = async (req, res) => {
+  try {
+    const entradas = await prisma.movimientoInventario.findMany({
+      where: { tipo: 'entrada' },
+      orderBy: { fecha: 'desc' },
+    });
+
+    res.json(entradas);
+  } catch (error) {
+    console.error('Error al obtener entradas:', error);
+    res.status(500).json({ message: 'Error al obtener entradas' });
+  }
+};
+
+exports.obtenerSalidas = async (req, res) => {
+  try {
+    const salidas = await prisma.movimientoInventario.findMany({
+      where: { tipo: 'salida' },
+      orderBy: { fecha: 'desc' },
+    });
+
+    res.json(salidas);
+  } catch (error) {
+    console.error('Error al obtener salidas:', error);
+    res.status(500).json({ message: 'Error al obtener salidas' });
+  }
+};
+
 
 exports.registrarEntrada = (req, res) => exports.registrarMovimiento(req, res, 'entrada');
 exports.registrarSalida = (req, res) => exports.registrarMovimiento(req, res, 'salida');

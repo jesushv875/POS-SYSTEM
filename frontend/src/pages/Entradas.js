@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { useNavigate } from 'react-router-dom';
+
 
 function Entradas() {
+  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
+  const [entradas, setEntradas] = useState([]);
   const [formData, setFormData] = useState({
     productoId: '',
     motivo: '',
@@ -26,7 +30,29 @@ function Entradas() {
     fetch('http://localhost:5001/api/productos')
       .then((res) => res.json())
       .then((data) => setProductos(data));
+
+    fetchEntradas();
   }, []);
+
+  const fetchEntradas = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5001/api/inventario/entradas', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Error HTTP: ${res.status} - ${errorText}`);
+      }
+      const data = await res.json();
+      setEntradas(data);
+    } catch (error) {
+      console.error('Error al obtener entradas:', error);
+      alert('Error al cargar historial de entradas');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -70,6 +96,7 @@ function Entradas() {
       if (res.ok) {
         alert('Entrada registrada correctamente');
         setFormData({ productoId: '', motivo: '', cantidad: '', comentario: '', imagen: null });
+        fetchEntradas();
       } else {
         alert(result.message);
       }
@@ -81,6 +108,10 @@ function Entradas() {
 
   return (
     <div className="container">
+            <button onClick={() => navigate('/inventario')} style={{ marginBottom: '15px' }}>
+        Volver a Inventario
+      </button>
+
       <h1>Registrar Entrada de Producto</h1>
       <form onSubmit={handleSubmit}>
         <label>Producto</label>
@@ -101,10 +132,53 @@ function Entradas() {
         <input type="text" name="comentario" value={formData.comentario} onChange={handleChange} />
 
         <label>Imagen (Factura, foto, etc.)</label>
-        <input type="file" name="imagen" onChange={handleChange} accept="image/*" />
+        <input type="file" name="imagen" onChange={handleChange} accept="image/*,.pdf" />
 
         <button type="submit">Registrar Entrada</button>
       </form>
+
+      <h2>Historial de Entradas</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Producto</th>
+      <th>Motivo</th>
+      <th>Cantidad</th>
+      <th>Comentario</th>
+      <th>Imagen</th>
+    </tr>
+  </thead>
+  <tbody>
+    {entradas.map((entrada) => {
+      const productoNombre = productos.find((p) => p.id === entrada.productoId)?.nombre || 'Producto no encontrado';
+      return (
+        <tr key={entrada.id}>
+          <td>{new Date(entrada.fecha).toLocaleString()}</td>
+          <td>{productoNombre}</td>
+          <td>{entrada.motivo}</td>
+          <td>{entrada.cantidad}</td>
+          <td>{entrada.comentario || '-'}</td>
+          <td>
+            {entrada.imagenUrl ? (
+              entrada.imagenUrl.toLowerCase().endsWith('.pdf') ? (
+                <a href={`http://localhost:5001${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer" download>
+                  Descargar PDF
+                </a>
+              ) : (
+                <a href={`http://localhost:5001${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer">
+                  Ver Imagen
+                </a>
+              )
+            ) : (
+              'Sin archivo'
+            )}
+          </td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>
     </div>
   );
 }
