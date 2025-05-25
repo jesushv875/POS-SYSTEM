@@ -12,6 +12,8 @@ const ventasRoutes = require('./routes/ventas');
 const categoriasRoutes = require('./routes/categoriasRoutes');
 const cajaRoutes = require('./routes/cajaRoutes');
 const inventarioRoutes = require('./routes/inventarioRoutes');
+const reportesRoutes = require('./routes/reportesRoutes');
+
 
 const app = express();
 
@@ -32,6 +34,7 @@ app.use('/api/ventas', ventasRoutes);
 app.use('/api/categorias', categoriasRoutes);
 app.use('/api/caja', cajaRoutes);
 app.use('/api/inventario', inventarioRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 // Servir imágenes públicas
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

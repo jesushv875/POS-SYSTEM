@@ -14,6 +14,7 @@ import { jwtDecode } from 'jwt-decode';
 import useAutoLogout from './useAutoLogout';
 import Entradas from './pages/Entradas';
 import Salidas from './pages/Salidas';
+import Reportes from './pages/Reportes';
 
 function AppWrapper() {
   return (
@@ -115,7 +116,7 @@ function App() {
         <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Navigate to="/login" />} />
         <Route path="/ventas" element={isAuthenticated ? <Ventas /> : <Navigate to="/login" />} />
         <Route path="/caja" element={isAuthenticated ? <Caja /> : <Navigate to="/login" />} />
-
+        <Route path="/reportes" element={isAuthenticated ? <Reportes /> : <Navigate to="/login" />} />
         {/* ✅ Nuevas rutas de entradas y salidas protegidas */}
         <Route path="/entradas" element={isAuthenticated ? <Entradas /> : <Navigate to="/login" />} />
         <Route path="/salidas" element={isAuthenticated ? <Salidas /> : <Navigate to="/login" />} />
