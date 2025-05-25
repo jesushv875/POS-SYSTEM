@@ -4,7 +4,7 @@ const inventarioController = require('../controllers/inventarioController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const logController = require('../controllers/logController'); // 👈 Importar logController
+//const logController = require('../controllers/logController'); // 👈 Importar logController
 
 // Configuración de almacenamiento para multer
 const storage = multer.diskStorage({

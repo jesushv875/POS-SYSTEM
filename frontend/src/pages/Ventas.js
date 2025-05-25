@@ -1,4 +1,4 @@
-  import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
   import { jwtDecode } from 'jwt-decode';
 
   function Ventas() {
@@ -86,8 +86,15 @@
     const calcularTotal = () => carrito.reduce((total, item) => total + item.precio * item.cantidad, 0);
 
     const calcularCambio = () => {
-      let efectivo = metodoPago === 'mixto' ? parseFloat(montoEfectivo || 0) : parseFloat(pagoCliente || 0);
-      return efectivo - calcularTotal();
+      if (metodoPago === 'efectivo' || metodoPago === 'tarjeta') {
+        const pagado = parseFloat(pagoCliente || 0);
+        return pagado - calcularTotal();
+      }
+      // Si es mixto
+      let efectivo = parseFloat(montoEfectivo || 0);
+      let tarjeta = parseFloat(montoTarjeta || 0);
+      const totalPagado = efectivo + tarjeta;
+      return totalPagado - calcularTotal();
     };
 
     const finalizarVenta = async () => {
@@ -107,10 +114,18 @@
         montoPagado = efectivo;
       } else if (metodoPago === 'tarjeta') {
         tarjeta = parseFloat(pagoCliente);
+        if (tarjeta > totalVenta) {
+          alert('En tarjeta no puedes exceder el total de la venta');
+          return;
+        }
         montoPagado = tarjeta;
       } else if (metodoPago === 'mixto') {
         efectivo = parseFloat(montoEfectivo || 0);
         tarjeta = parseFloat(montoTarjeta || 0);
+        if (tarjeta > (totalVenta - efectivo)) {
+          alert('En tarjeta no puedes exceder el total restante después de efectivo');
+          return;
+        }
         montoPagado = efectivo + tarjeta;
       }
     
@@ -125,7 +140,6 @@
         usuarioId,
         total: totalVenta,
         metodoPago,
-        pagoEfectivo: efectivo,
         pagoTarjeta: tarjeta,
         montoPagado,
         cambio: cambioCalculado,
@@ -144,19 +158,20 @@
         });
     
         const data = await response.json();
-        setVentaFinalizada({
-          ...data,
-          productos: carrito,  // carrito tiene los nombres, ya que es un mapeo directo
-        });
     
         if (response.ok) {
+          const ventaData = {
+            ...data,
+            productos: carrito,
+          };
+          setVentaFinalizada(ventaData);
           alert('Venta registrada');
-          setVentaFinalizada(venta);
           setCarrito([]);
           setPagoCliente('');
           setMontoEfectivo('');
           setMontoTarjeta('');
           setMetodoPago('efectivo');
+          // setVentaFinalizada(null);
           obtenerProductos();
         } else {
           alert('Error al registrar la venta');
@@ -167,6 +182,11 @@
     };
 
     const handlePrint = () => {
+      if (!ventaFinalizada || !ticketRef.current) {
+        console.error("No se encontró el ticket para imprimir");
+        return;
+      }
+
       const ventana = window.open('', 'PRINT', 'height=400,width=300');
       ventana.document.write('<html><head><title>Ticket</title>');
       ventana.document.write('<style>body{ font-family: Arial; width: 250px; }</style>');
@@ -210,7 +230,13 @@
                   <td>{categorias.find(cat => cat.id === producto.categoriaId)?.nombre || 'Sin categoría'}</td>
                   <td>${producto.precio}</td>
                   <td>{producto.stock}</td>
-                  <td><img src={producto.imagenUrl} alt={producto.nombre} width="50" height="50" /></td>
+                  <td>
+                    {producto.imagenUrl ? (
+                      <img src={producto.imagenUrl} alt={producto.nombre} width="50" height="50" />
+                    ) : (
+                      <span>Sin imagen</span>
+                    )}
+                  </td>
                   <td><button onClick={() => agregarAlCarrito(producto)}>Agregar</button></td>
                 </tr>
               ))}
@@ -277,31 +303,36 @@
         <button onClick={finalizarVenta}>Finalizar Venta</button>
 
         {ventaFinalizada && (
-    <div>
-      <h2>Ticket de Compra</h2>
-      <div ref={ticketRef} style={{ width: '250px', textAlign: 'center', fontSize: '12px' }}>
-        <h3>*** TICKET DE COMPRA ***</h3>
-        <p>Fecha: {new Date().toLocaleString()}</p>
-        <hr />
-        {ventaFinalizada.productos.map((item, idx) => (
-          <div key={idx} style={{ marginBottom: '5px' }}>
-            <p style={{ margin: '2px 0' }}>
-              {item.nombre} x{item.cantidad} @ ${item.precio.toFixed(2)}
-            </p>
-            <p style={{ margin: '0 0 5px 0' }}>Subtotal: ${(item.precio * item.cantidad).toFixed(2)}</p>
+          <div>
+            <h2>Ticket de Compra</h2>
+            <div ref={ticketRef} style={{ width: '250px', textAlign: 'center', fontSize: '12px', border: '1px solid #000', padding: '10px' }}>
+              <h3>*** TICKET DE COMPRA ***</h3>
+              <p>Fecha: {new Date().toLocaleString()}</p>
+              <p>Vendedor: {usuarioId ? usuarioId : 'No identificado'}</p>
+              <hr />
+              {ventaFinalizada.productos.map((item, idx) => (
+                <div key={idx} style={{ marginBottom: '5px' }}>
+                  <p>{item.nombre} x{item.cantidad}  ${item.precio.toFixed(2)}</p>
+                  <p>Subtotal: ${(item.precio * item.cantidad).toFixed(2)}</p>
+                </div>
+              ))}
+              <hr />
+              <p><strong>Total: ${parseFloat(ventaFinalizada.total).toFixed(2)}</strong></p>
+              <p>Método: {ventaFinalizada.metodoPago}</p>
+              {ventaFinalizada.metodoPago === 'mixto' ? (
+                <>
+                  <p>Efectivo: ${parseFloat(ventaFinalizada.pagoEfectivo).toFixed(2)}</p>
+                  <p>Tarjeta: ${parseFloat(ventaFinalizada.pagoTarjeta).toFixed(2)}</p>
+                </>
+              ) : (
+                <p>Pagado: ${parseFloat(ventaFinalizada.montoPagado).toFixed(2)}</p>
+              )}
+              <p>Cambio: ${parseFloat(ventaFinalizada.cambio).toFixed(2)}</p>
+              <p>¡Gracias por su compra!</p>
+            </div>
+            <button onClick={handlePrint} style={{ marginTop: '10px' }}>Imprimir Ticket</button>
           </div>
-        ))}
-        <hr />
-        <p><strong>Total: ${ventaFinalizada.total.toFixed(2)}</strong></p>
-        <p>Método: {ventaFinalizada.metodoPago}</p>
-        <p>Pagado: ${ventaFinalizada.montoPagado?.toFixed(2)}</p>
-        <p>Cambio: ${ventaFinalizada.cambio?.toFixed(2)}</p>
-        <hr />
-        <p>¡Gracias por su compra!</p>
-      </div>
-      <button onClick={handlePrint}>Imprimir Ticket</button>
-    </div>
-  )}
+        )}
       </div>
     );
   }

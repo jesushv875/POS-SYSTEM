@@ -14,9 +14,17 @@ router.post('/nueva', async (req, res) => {
     }
   
     try {
+      const total = productos.reduce((sum, p) => sum + p.precio * p.cantidad, 0);
+
       const venta = await prisma.venta.create({
         data: {
           usuarioId,
+          total,
+          metodoPago: req.body.metodoPago,
+          pagoEfectivo: req.body.pagoEfectivo,
+          pagoTarjeta: req.body.pagoTarjeta,
+          montoPagado: req.body.montoPagado,
+          cambio: req.body.cambio,
           detalles: {
             create: productos.map((p) => ({
               productoId: p.id,
@@ -35,8 +43,20 @@ router.post('/nueva', async (req, res) => {
           data: { stock: { decrement: p.cantidad } },
         });
       }
-  
-      // Registrar log
+
+      const cajaHoy = await prisma.caja.findFirst({
+        where: { cerrada: false },
+        orderBy: { fecha: 'desc' },
+      });
+
+      await prisma.caja.update({
+        where: { id: cajaHoy.id },
+        data: {
+          totalVentas: { increment: total },
+          totalEnCaja: { increment: req.body.pagoEfectivo },
+        },
+      });
+
       await prisma.log.create({
         data: {
           usuarioId,
@@ -44,6 +64,16 @@ router.post('/nueva', async (req, res) => {
           entidad: 'Venta',
           entidadId: venta.id,
           detalles: `Productos vendidos: ${productos.map(p => `${p.nombre} (${p.cantidad})`).join(', ')}`,
+        },
+      });
+
+      await prisma.log.create({
+        data: {
+          usuarioId,
+          accion: 'Actualización de caja por venta',
+          entidad: 'Caja',
+          entidadId: cajaHoy.id,
+          detalles: `Se incrementó totalVentas en $${total} y totalEnCaja en $${req.body.pagoEfectivo}`,
         },
       });
   

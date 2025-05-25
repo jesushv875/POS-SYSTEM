@@ -11,13 +11,31 @@ router.post('/nueva', async (req, res) => {
   }
 
   try {
+    // Validar stock antes de procesar la venta para evitar stock negativo
+    for (const p of productos) {
+      const productoActual = await prisma.producto.findUnique({ where: { id: p.id } });
+      if (!productoActual || productoActual.stock < p.cantidad) {
+        return res.status(400).json({ error: `Stock insuficiente para el producto ID ${p.id}` });
+      }
+    }
+
+    const tarjeta = Number(pagoTarjeta || 0);
+    const totalVenta = Number(total || 0);
+    let pagoEfectivoReal = 0;
+    if (metodoPago === 'efectivo') {
+      pagoEfectivoReal = totalVenta;
+    } else if (metodoPago === 'mixto') {
+      pagoEfectivoReal = totalVenta - tarjeta;
+    }
+    if (isNaN(pagoEfectivoReal)) pagoEfectivoReal = 0;
+
     // 1. Crear la venta
     const venta = await prisma.venta.create({
       data: {
         usuarioId,
         total,
         metodoPago,
-        pagoEfectivo,
+        pagoEfectivo: pagoEfectivoReal,
         pagoTarjeta,
         montoPagado,
         cambio,
@@ -33,7 +51,7 @@ router.post('/nueva', async (req, res) => {
       
     });
 
-    // 2. Actualizar stock de productos
+    // 2. Actualizar stock de productos para reflejar la venta y evitar inconsistencias
     for (const p of productos) {
       await prisma.producto.update({
         where: { id: p.id },
@@ -41,7 +59,7 @@ router.post('/nueva', async (req, res) => {
       });
     }
 
-    // 3. Registrar log
+    // 3. Registrar log de venta
     await prisma.log.create({
       data: {
         usuarioId,
@@ -63,7 +81,18 @@ router.post('/nueva', async (req, res) => {
         where: { id: cajaHoy.id },
         data: {
           totalVentas: { increment: total },
-          totalEnCaja: { increment: pagoEfectivo }, // SOLO suma efectivo
+          totalEnCaja: { increment: pagoEfectivoReal }, // SOLO suma efectivo
+        },
+      });
+
+      // Registrar log adicional por actualización de caja tras la venta
+      await prisma.log.create({
+        data: {
+          usuarioId,
+          accion: 'Actualización de caja por venta',
+          entidad: 'Caja',
+          entidadId: cajaHoy.id,
+          detalles: `Se incrementó totalVentas en $${total} y totalEnCaja en $${pagoEfectivoReal}`,
         },
       });
     }

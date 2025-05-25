@@ -14,8 +14,9 @@ model Usuario {
   password String
   rol      String
 
-  logs   Log[] 
-  ventas Venta[] 
+  logs   Log[]
+  ventas Venta[]
+  cortes CorteCaja[] // ← campo agregado
 }
 
 model Proveedor {
@@ -35,7 +36,7 @@ model Producto {
   stock        Int?
   proveedorId  Int?
   proveedor    Proveedor? @relation(fields: [proveedorId], references: [id])
-  codigoBarras String? @unique
+  codigoBarras String?    @unique
   imagenUrl    String?
   categoriaId  Int?
   pasillo      String?
@@ -43,14 +44,14 @@ model Producto {
   piso         String?
   categoria    Categoria? @relation(fields: [categoriaId], references: [id])
   stockMinimo  Int?
-  
-  detalleVentas DetalleVenta[] 
+
+  detalleVentas DetalleVenta[]
   movimientos   MovimientoInventario[]
 }
 
 model Categoria {
-  id      Int      @id @default(autoincrement())
-  nombre  String
+  id        Int        @id @default(autoincrement())
+  nombre    String
   productos Producto[]
 }
 
@@ -66,60 +67,73 @@ model Log {
 }
 
 model Venta {
-  id           Int            @id @default(autoincrement())
-  usuarioId    Int?
-  usuario      Usuario?       @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  fecha        DateTime       @default(now())
-  total        Decimal
-  montoPagado  Decimal
-  cambio       Decimal
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int?
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  fecha       DateTime @default(now())
+  total       Decimal
+  montoPagado Decimal
+  cambio      Decimal
 
-  metodoPago   String?         
-  pagoEfectivo Decimal?       
-  pagoTarjeta  Decimal?       
+  metodoPago   String?
+  pagoEfectivo Decimal?
+  pagoTarjeta  Decimal?
 
-  detalles     DetalleVenta[]
+  detalles DetalleVenta[]
 }
 
 model DetalleVenta {
-  id         Int     @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   ventaId    Int
   productoId Int
   cantidad   Int
   subtotal   Decimal
-  venta      Venta   @relation(fields: [ventaId], references: [id])
+  venta      Venta    @relation(fields: [ventaId], references: [id])
   producto   Producto @relation(fields: [productoId], references: [id])
 }
 
 model Caja {
-  id           Int      @id @default(autoincrement())
-  fecha        DateTime @default(now())
+  id           Int              @id @default(autoincrement())
+  fecha        DateTime         @default(now())
   fondoInicial Decimal
-  totalVentas  Decimal  @default(0)
+  totalVentas  Decimal          @default(0)
   totalEnCaja  Decimal
+  estado       Boolean          @default(false) // false = cerrada, true = abierta
   movimientos  CajaMovimiento[]
 }
 
 model CajaMovimiento {
-  id       Int      @id @default(autoincrement())
-  fecha    DateTime @default(now())
-  tipo     String   
-  monto    Decimal
-  motivo   String
-  cajaId   Int
-  caja     Caja     @relation(fields: [cajaId], references: [id])
+  id     Int      @id @default(autoincrement())
+  fecha  DateTime @default(now())
+  tipo   String
+  monto  Decimal
+  motivo String
+  cajaId Int
+  caja   Caja     @relation(fields: [cajaId], references: [id])
+}
+
+model CorteCaja {
+  id             Int      @id @default(autoincrement())
+  fecha          DateTime @default(now())
+  fondoInicial   Decimal
+  totalVentas    Decimal
+  ingresos       Decimal
+  egresos        Decimal
+  totalEntregado Decimal
+  usuarioId      Int?
+  usuario        Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
 }
 
 model MovimientoInventario {
-  id          Int       @id @default(autoincrement())
-  tipo        String    
-  motivo      String
-  cantidad    Int
-  imagenUrl   String?
-  comentario  String?
-  usuarioId   Int
-  productoId  Int
-  fecha       DateTime  @default(now())
+  id         Int      @id @default(autoincrement())
+  tipo       String
+  motivo     String
+  cantidad   Int
+  imagenUrl  String?
+  comentario String?
+  usuarioId  Int
+  productoId Int
+  fecha      DateTime @default(now())
 
-  producto    Producto  @relation(fields: [productoId], references: [id])
+  producto Producto @relation(fields: [productoId], references: [id])
 }
