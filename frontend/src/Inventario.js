@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './css/App.css'; // Importa los estilos
 import { jwtDecode } from 'jwt-decode';
 
+const API_URL = process.env.REACT_APP_API_URL;
 
 function Inventario() {
   const [productos, setProductos] = useState([]);
@@ -57,9 +58,9 @@ function Inventario() {
 
   const fetchData = async () => {
     try {
-      const productosResponse = await fetch('http://localhost:5001/api/productos');
-      const proveedoresResponse = await fetch('http://localhost:5001/api/proveedores');
-      const categoriasResponse = await fetch('http://localhost:5001/api/categorias'); // Asegúrate de tener este endpoint en el backend
+      const productosResponse = await fetch(`${API_URL}/api/productos`);
+      const proveedoresResponse = await fetch(`${API_URL}/api/proveedores`);
+      const categoriasResponse = await fetch(`${API_URL}/api/categorias`); // Asegúrate de tener este endpoint en el backend
 
       if (productosResponse.ok && proveedoresResponse.ok && categoriasResponse.ok) {
         const productosData = await productosResponse.json();
@@ -151,7 +152,7 @@ function Inventario() {
       }
   
       if (editProducto) {
-        response = await fetch(`http://localhost:5001/api/productos/${editProducto.id}`, {
+        response = await fetch(`${API_URL}/api/productos/${editProducto.id}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
@@ -160,7 +161,7 @@ function Inventario() {
           body: JSON.stringify(producto),
         });
       } else {
-        response = await fetch('http://localhost:5001/api/productos/agregar', {
+        response = await fetch(`${API_URL}/api/productos/agregar`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -215,7 +216,7 @@ function Inventario() {
       console.log("Usuario ID obtenido del token:", usuarioId); // Verificar qué contiene el token
   
       // Enviar la solicitud DELETE e incluir el usuarioId en el body
-      const response = await fetch(`http://localhost:5001/api/productos/${id}`, {
+      const response = await fetch(`${API_URL}/api/productos/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

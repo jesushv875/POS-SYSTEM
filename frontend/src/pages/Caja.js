@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function Caja() {
   const [caja, setCaja] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -9,7 +11,7 @@ function Caja() {
 
   const obtenerCorte = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/caja/corte');
+      const res = await fetch(`${API_URL}/api/caja/corte`);
       if (!res.ok) throw new Error('Error al obtener corte de caja');
       const data = await res.json();
       setCorte(data);
@@ -43,7 +45,7 @@ function Caja() {
   const cerrarCaja = async () => {
     if (!window.confirm('¿Seguro que deseas cerrar la caja? Esto retirará todo el dinero.')) return;
     try {
-      const res = await fetch('http://localhost:5001/api/caja/cerrar', {
+      const res = await fetch(`${API_URL}/api/caja/cerrar`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -64,7 +66,7 @@ function Caja() {
   useEffect(() => {
     const fetchCaja = async () => {
       try {
-        const res = await fetch('http://localhost:5001/api/caja/hoy');
+        const res = await fetch(`${API_URL}/api/caja/hoy`);
         if (!res.ok) throw new Error('Error al obtener la caja');
         const data = await res.json();
         setCaja(data);
@@ -88,7 +90,7 @@ function Caja() {
       return;
     }
     try {
-      const res = await fetch('http://localhost:5001/api/caja/fondo', {
+      const res = await fetch(`${API_URL}/api/caja/fondo`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fondoInicial: caja.fondoInicial })
@@ -110,7 +112,7 @@ function Caja() {
     }
 
     try {
-      const res = await fetch('http://localhost:5001/api/caja/iniciar', {
+      const res = await fetch(`${API_URL}/api/caja/iniciar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fondoInicial: fondo })

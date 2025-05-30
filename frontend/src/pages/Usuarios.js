@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import '../css/App.css'; // Asegúrate de tener los estilos
 import { jwtDecode } from 'jwt-decode';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [nuevoUsuario, setNuevoUsuario] = useState({
@@ -28,7 +30,7 @@ function Usuarios() {
 
   const fetchUsuarios = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/usuarios');
+      const response = await fetch(`${API_URL}/api/usuarios`);
       if (response.ok) {
         const data = await response.json();
         setUsuarios(data);
@@ -56,13 +58,13 @@ function Usuarios() {
       let response;
 
       if (editUsuario) {
-        response = await fetch(`http://localhost:5001/api/usuarios/${editUsuario.id}`, {
+        response = await fetch(`${API_URL}/api/usuarios/${editUsuario.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(usuarioData),
         });
       } else {
-        response = await fetch('http://localhost:5001/api/usuarios/agregar', {
+        response = await fetch(`${API_URL}/api/usuarios/agregar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(usuarioData),
@@ -91,7 +93,7 @@ function Usuarios() {
 
     if (window.confirm('¿Seguro que quieres eliminar este usuario?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/usuarios/${id}`, {
+        const response = await fetch(`${API_URL}/api/usuarios/${id}`, {
           method: 'DELETE',
         });
 

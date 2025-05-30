@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
   import { jwtDecode } from 'jwt-decode';
 
+  const API_URL = process.env.REACT_APP_API_URL;
+
   function Ventas() {
     const [productos, setProductos] = useState([]);
     const [busqueda, setBusqueda] = useState('');
@@ -30,7 +32,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
     const obtenerProductos = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/productos');
+        const response = await fetch(`${API_URL}/api/productos`);
         const data = await response.json();
         setProductos(data);
       } catch (error) {
@@ -40,7 +42,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
     const obtenerCategorias = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/categorias');
+        const response = await fetch(`${API_URL}/api/categorias`);
         const data = await response.json();
         setCategorias(data);
       } catch (error) {
@@ -151,7 +153,7 @@ import React, { useState, useEffect, useRef } from 'react';
       };
     
       try {
-        const response = await fetch('http://localhost:5001/api/ventas/nueva', {
+        const response = await fetch(`${API_URL}/api/ventas/nueva`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(venta),
@@ -218,28 +220,29 @@ import React, { useState, useEffect, useRef } from 'react';
             </tr>
           </thead>
           <tbody>
-            {productos
-              .filter((producto) =>
-                producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-                producto.codigoBarras?.toLowerCase().includes(busqueda.toLowerCase())
-              )
-              .map((producto) => (
-                <tr key={producto.id} style={{ backgroundColor: producto.stock <= 5 ? 'lightcoral' : 'white' }}>
-                  <td>{producto.codigoBarras}</td>
-                  <td>{producto.nombre}</td>
-                  <td>{categorias.find(cat => cat.id === producto.categoriaId)?.nombre || 'Sin categoría'}</td>
-                  <td>${producto.precio}</td>
-                  <td>{producto.stock}</td>
-                  <td>
-                    {producto.imagenUrl ? (
-                      <img src={producto.imagenUrl} alt={producto.nombre} width="50" height="50" />
-                    ) : (
-                      <span>Sin imagen</span>
-                    )}
-                  </td>
-                  <td><button onClick={() => agregarAlCarrito(producto)}>Agregar</button></td>
-                </tr>
-              ))}
+            {busqueda &&
+              productos
+                .filter((producto) =>
+                  producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+                  producto.codigoBarras?.toLowerCase().includes(busqueda.toLowerCase())
+                )
+                .map((producto) => (
+                  <tr key={producto.id} style={{ backgroundColor: producto.stock <= 5 ? 'lightcoral' : 'white' }}>
+                    <td>{producto.codigoBarras}</td>
+                    <td>{producto.nombre}</td>
+                    <td>{categorias.find(cat => cat.id === producto.categoriaId)?.nombre || 'Sin categoría'}</td>
+                    <td>${producto.precio}</td>
+                    <td>{producto.stock}</td>
+                    <td>
+                      {producto.imagenUrl ? (
+                        <img src={producto.imagenUrl} alt={producto.nombre} width="50" height="50" />
+                      ) : (
+                        <span>Sin imagen</span>
+                      )}
+                    </td>
+                    <td><button onClick={() => agregarAlCarrito(producto)}>Agregar</button></td>
+                  </tr>
+                ))}
           </tbody>
         </table>
 

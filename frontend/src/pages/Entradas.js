@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = process.env.REACT_APP_API_URL;
 
 function Entradas() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ function Entradas() {
       }
     }
 
-    fetch('http://localhost:5001/api/productos')
+    fetch(`${API_URL}/api/productos`)
       .then((res) => res.json())
       .then((data) => setProductos(data));
 
@@ -37,7 +38,7 @@ function Entradas() {
   const fetchEntradas = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/inventario/entradas', {
+      const res = await fetch(`${API_URL}/api/inventario/entradas`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -84,7 +85,7 @@ function Entradas() {
     }
   
     try {
-      const res = await fetch('http://localhost:5001/api/inventario/entrada', {
+      const res = await fetch(`${API_URL}/api/inventario/entrada`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -162,11 +163,11 @@ function Entradas() {
           <td>
             {entrada.imagenUrl ? (
               entrada.imagenUrl.toLowerCase().endsWith('.pdf') ? (
-                <a href={`http://localhost:5001${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer" download>
+                <a href={`${API_URL}${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer" download>
                   Descargar PDF
                 </a>
               ) : (
-                <a href={`http://localhost:5001${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer">
+                <a href={`${API_URL}${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer">
                   Ver Imagen
                 </a>
               )

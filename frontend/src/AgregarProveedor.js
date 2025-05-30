@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function AgregarProveedor() {
   const [proveedor, setProveedor] = useState({
     nombre: '',
@@ -17,7 +19,7 @@ function AgregarProveedor() {
 
   const obtenerProveedores = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/proveedores');
+      const response = await fetch(`${API_URL}/api/proveedores`);
       const data = await response.json();
       setProveedores(data);
     } catch (error) {
@@ -34,8 +36,8 @@ function AgregarProveedor() {
     e.preventDefault();
     
     const url = editando 
-      ? `http://localhost:5001/api/proveedores/${editando.id}`
-      : 'http://localhost:5001/api/proveedores/agregar';
+      ? `${API_URL}/api/proveedores/${editando.id}`
+      : `${API_URL}/api/proveedores/agregar`;
 
     const method = editando ? 'PUT' : 'POST';
 
@@ -68,7 +70,7 @@ function AgregarProveedor() {
     if (!window.confirm('¿Seguro que quieres eliminar este proveedor?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5001/api/proveedores/${id}`, {
+      const response = await fetch(`${API_URL}/api/proveedores/${id}`, {
         method: 'DELETE',
       });
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function Salidas() {
   const [productos, setProductos] = useState([]);
   const [salidas, setSalidas] = useState([]);
@@ -24,7 +26,7 @@ function Salidas() {
       }
     }
 
-    fetch('http://localhost:5001/api/productos')
+    fetch(`${API_URL}/api/productos`)
       .then((res) => res.json())
       .then((data) => setProductos(data));
 
@@ -34,7 +36,7 @@ function Salidas() {
   const fetchSalidas = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/inventario/salidas', {
+      const res = await fetch(`${API_URL}/api/inventario/salidas`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -73,7 +75,7 @@ function Salidas() {
     data.append('usuarioId', usuarioId);
 
     try {
-      const res = await fetch('http://localhost:5001/api/inventario/salida', {
+      const res = await fetch(`${API_URL}/api/inventario/salida`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -150,11 +152,11 @@ function Salidas() {
                 <td>
                   {salida.imagenUrl ? (
                     salida.imagenUrl.toLowerCase().endsWith('.pdf') ? (
-                      <a href={`http://localhost:5001${salida.imagenUrl}`} target="_blank" rel="noopener noreferrer" download>
+                      <a href={`${API_URL}${salida.imagenUrl}`} target="_blank" rel="noopener noreferrer" download>
                         Descargar PDF
                       </a>
                     ) : (
-                      <a href={`http://localhost:5001${salida.imagenUrl}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`${API_URL}${salida.imagenUrl}`} target="_blank" rel="noopener noreferrer">
                         Ver Imagen
                       </a>
                     )

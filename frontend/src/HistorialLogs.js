@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './css/HistorialLogs.css'; // Asegúrate de importar los estilos
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function HistorialLogs() {
   const [logs, setLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
@@ -11,7 +13,7 @@ function HistorialLogs() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/logs');
+        const response = await fetch(`${API_URL}/api/logs`);
         if (!response.ok) {
           throw new Error('Error al obtener los logs');
         }

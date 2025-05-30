@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 function Categorias() {
   const [categorias, setCategorias] = useState([]);
   const [nuevaCategoria, setNuevaCategoria] = useState('');
@@ -11,7 +13,7 @@ function Categorias() {
 
   const obtenerCategorias = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/categorias');
+      const response = await fetch(`${API_URL}/api/categorias`);
       const data = await response.json();
       setCategorias(data);
     } catch (error) {
@@ -27,14 +29,14 @@ function Categorias() {
       let data;
 
       if (editCategoria) {
-        response = await fetch(`http://localhost:5001/api/categorias/${editCategoria.id}`, {
+        response = await fetch(`${API_URL}/api/categorias/${editCategoria.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre: nuevaCategoria }),
         });
         data = await response.json();
       } else {
-        response = await fetch('http://localhost:5001/api/categorias/agregar', {
+        response = await fetch(`${API_URL}/api/categorias/agregar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nombre: nuevaCategoria }),
@@ -58,7 +60,7 @@ function Categorias() {
   const handleDelete = async (id) => {
     if (window.confirm('¿Seguro que quieres eliminar esta categoría?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/categorias/${id}`, {
+        const response = await fetch(`${API_URL}/api/categorias/${id}`, {
           method: 'DELETE',
         });
 
