@@ -19,7 +19,9 @@ const app = express();
 
 const allowedOriginPatterns = [
   /^https?:\/\/localhost(:\d+)?$/,   // local dev (3000, 5173, etc.)
-  /^https:\/\/.*\.ngrok-free\.app$/ // any ngrok public URL
+  /^https:\/\/.*\.ngrok-free\.app$/, // any ngrok public URL
+    /^https:\/\/.*\.vercel\.app$/
+
 ];
 
 const corsOptions = {
