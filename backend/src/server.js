@@ -21,7 +21,9 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       'http://localhost:3000',
-      'https://pos-system-theta-three.vercel.app'
+      'https://pos-system-theta-three.vercel.app',
+      'https://pos-system-8hkrxt48q-jesushvs-projects-4da46ba9.vercel.app'
+
     ];
 
     if (!origin || allowedOrigins.includes(origin)) {

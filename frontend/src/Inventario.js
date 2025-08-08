@@ -107,7 +107,7 @@ function Inventario() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       // Obtener token del localStorage
       const token = localStorage.getItem('token');
@@ -115,64 +115,57 @@ function Inventario() {
         alert('No hay token, inicia sesión nuevamente');
         return;
       }
-  
+
       // Decodificar token
       const decodedToken = jwtDecode(token);
-      console.log("Decoded Token:", decodedToken.id); // Verificar qué contiene el token
-  
       // Validar que el token contiene usuarioId
       if (!decodedToken || !decodedToken.id) {
         alert('Error: Token inválido, inicia sesión nuevamente');
         return;
       }
-  
       const usuarioId = decodedToken.id; // Extraer el ID del usuario
-  
+
       let response;
       let data;
-  
-      const productoData = editProducto || nuevoProducto;
-      const producto = {
-        usuarioId,
-        nombre: productoData.nombre,
-        precio: parseFloat(productoData.precio),
-        proveedorId: parseInt(productoData.proveedorId),
-        categoriaId: productoData.categoriaId !== '' ? parseInt(productoData.categoriaId) : null,
-        codigoBarras: productoData.codigoBarras,
-        imagenUrl: productoData.imagenUrl,
-        stockMinimo: productoData.stockMinimo ? parseInt(productoData.stockMinimo) : 0,
-        pasillo: productoData.pasillo,
-        anaquel: productoData.anaquel,
-        piso: productoData.piso,
-        stock: productoData.stock ? parseInt(productoData.stock) : 0,
-      };
-      if (usuarioId) {
-        console.log("Decoded Token:", decodedToken.id); // Verificar qué contiene el token
 
+      const productoData = editProducto || nuevoProducto;
+
+      // Usar FormData para enviar datos y archivos (versión robusta)
+      const formData = new FormData();
+      formData.append('usuarioId', usuarioId);
+      formData.append('proveedorId', productoData.proveedorId !== '' ? parseInt(productoData.proveedorId) : '');
+      formData.append('categoriaId', productoData.categoriaId !== '' ? parseInt(productoData.categoriaId) : '');
+      formData.append('precio', productoData.precio !== '' ? parseFloat(productoData.precio) : '');
+      formData.append('codigoBarras', productoData.codigoBarras ? productoData.codigoBarras.toString().trim() : '');
+      formData.append('nombre', productoData.nombre ? productoData.nombre.toString().trim() : '');
+      formData.append('stockMinimo', productoData.stockMinimo !== '' ? parseInt(productoData.stockMinimo) : 0);
+      formData.append('pasillo', productoData.pasillo ? productoData.pasillo.toString().trim() : '');
+      formData.append('anaquel', productoData.anaquel ? productoData.anaquel.toString().trim() : '');
+      formData.append('piso', productoData.piso ? productoData.piso.toString().trim() : '');
+      formData.append('stock', productoData.stock !== '' ? parseInt(productoData.stock) : 0);
+
+      if (productoData.imagen instanceof File) {
+        formData.append('imagen', productoData.imagen);
+      } else {
+        formData.append('imagenUrl', productoData.imagenUrl || '');
       }
-  
+
       if (editProducto) {
         response = await fetch(`${API_URL}/api/productos/${editProducto.id}`, {
           method: 'PUT',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(producto),
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData,
         });
       } else {
         response = await fetch(`${API_URL}/api/productos/agregar`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(producto),
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData,
         });
       }
-  
+
       data = await response.json();
-  
+
       if (response.ok) {
         alert(editProducto ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
         fetchData();
@@ -379,12 +372,19 @@ function Inventario() {
     className="ubicacion"
   />
 </div>
-          <label>Imagen url:</label>
+          <label>Imagen:</label>
           <input
-            type="text"
-            name="imagenUrl"
-            value={editProducto ? editProducto.imagenUrl : nuevoProducto.imagenUrl}
-            onChange={handleChange}
+            type="file"
+            name="imagen"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (editProducto) {
+                setEditProducto({ ...editProducto, imagen: file });
+              } else {
+                setNuevoProducto({ ...nuevoProducto, imagen: file });
+              }
+            }}
           />
         </div>
         <div>
