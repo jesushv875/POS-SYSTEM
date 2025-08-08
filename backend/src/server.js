@@ -17,25 +17,24 @@ const reportesRoutes = require('./routes/reportesRoutes');
 
 const app = express();
 
+const allowedOriginPatterns = [
+  /^https?:\/\/localhost(:\d+)?$/,   // local dev (3000, 5173, etc.)
+  /^https:\/\/.*\.ngrok-free\.app$/ // any ngrok public URL
+];
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://pos-system-theta-three.vercel.app',
-      'https://pos-system-8hkrxt48q-jesushvs-projects-4da46ba9.vercel.app'
-
-    ];
-
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // allow same-origin and curl/postman
+    const ok = allowedOriginPatterns.some(rx => rx.test(origin));
+    return ok ? callback(null, true) : callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Rutas principales
