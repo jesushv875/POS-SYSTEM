@@ -1,273 +1,130 @@
-.App {
-  text-align: center;
-}
+/* App.css — layout and page-specific styles */
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+/* ── Login ──────────────────────────────────────────────────── */
+.login-page {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
+  padding: 16px;
 }
 
-.App-link {
-  color: #61dafb;
+.login-box {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,.35);
+  padding: 40px 36px;
+  width: 100%; max-width: 380px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.login-logo {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; margin-bottom: 28px;
+}
+.login-logo-icon {
+  width: 48px; height: 48px;
+  background: var(--color-primary);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; color: #fff;
+  box-shadow: 0 4px 14px rgba(79,70,229,.4);
+}
+.login-logo h1  { font-size: 1.25rem; font-weight: 700; color: var(--color-text); margin: 0; text-align: center; }
+.login-logo p   { font-size: .8rem; color: var(--color-muted); text-align: center; margin: 0; }
+.login-box .form-group { margin-bottom: 16px; }
+.login-box input { padding: 11px 14px; font-size: .95rem; }
+.login-submit {
+  width: 100%; padding: 11px;
+  background: var(--color-primary); color: #fff;
+  border: none; border-radius: var(--radius-sm);
+  font-size: .95rem; font-weight: 600; cursor: pointer;
+  margin-top: 8px;
+  transition: background .15s, box-shadow .15s;
+}
+.login-submit:hover {
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 14px rgba(79,70,229,.35);
+}
+
+@media (max-width: 420px) {
+  .login-box { padding: 28px 20px; }
+}
+
+/* ── Ventas layout ──────────────────────────────────────────── */
+.ventas-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.carrito-panel {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  position: sticky;
+  top: 24px;
+}
+
+@media (max-width: 900px) {
+  .ventas-layout {
+    grid-template-columns: 1fr;
   }
-  to {
-    transform: rotate(360deg);
+  .carrito-panel { position: static; }
+}
+
+@media (max-width: 768px) {
+  .carrito-panel { top: 80px; }
+}
+
+/* ── Welcome screen ─────────────────────────────────────────── */
+.welcome-screen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 60vh; text-align: center; gap: 12px;
+}
+.welcome-screen .welcome-icon {
+  font-size: 3rem; width: 80px; height: 80px;
+  background: var(--color-primary-light);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-primary); margin-bottom: 8px;
+}
+.welcome-screen h2   { font-size: 1.4rem; color: var(--color-text); }
+.welcome-screen p    { color: var(--color-muted); max-width: 380px; line-height: 1.6; }
+
+/* ── Inventario ─────────────────────────────────────────────── */
+.inventario-filters {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 16px;
+}
+.inventario-filters .search-wrapper { flex: 1; min-width: 200px; }
+.inventario-filters select { min-width: 150px; width: auto; }
+
+@media (max-width: 600px) {
+  .inventario-filters { flex-direction: column; }
+  .inventario-filters .search-wrapper,
+  .inventario-filters select { width: 100%; min-width: 0; }
+}
+
+/* ── Caja ───────────────────────────────────────────────────── */
+.caja-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* ── Entradas / Salidas ─────────────────────────────────────── */
+.entradas-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .entradas-layout {
+    grid-template-columns: 1fr;
   }
-}
-/* Estilos generales */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f9f9f9;
-  color: #333;
-}
-
-h1 {
-  text-align: center;
-  color: #444;
-  margin-top: 20px;
-}
-.disabled-input {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 20px;
-}
-
-/* Botones y enlaces */
-button, a {
-  display: inline-block;
-  padding: 10px 15px;
-  margin: 10px 0;
-  font-size: 16px;
-  color: #fff;
-  background-color: #007bff;
-  border: none;
-  border-radius: 5px;
-  text-decoration: none;
-  text-align: center;
-  cursor: pointer;
-}
-
-button:hover, a:hover {
-  background-color: #0056b3;
-}
-
-/* Formulario */
-form div {
-  margin-bottom: 15px;
-}
-
-form label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-form input {
-  width: 90%;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-}
-
-form button {
-  width: 90%;
-  background-color: #28a745;
-}
-
-form button:hover {
-  background-color: #218838;
-}
-
-/* Tabla de inventario */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-thead {
-  background-color: #007bff;
-  color: #fff;
-}
-
-th, td {
-  padding: 10px;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-tbody tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-/* Estilos para el formulario de Login */
-.login-container {
-  width: 100%;
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.login-container h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 24px;
-  color: #333;
-}
-
-.login-container label {
-  display: block;
-  margin: 10px 0 5px;
-  font-size: 14px;
-  color: #555;
-}
-
-.login-container input {
-  width: 85%;
-  padding: 10px;
-  margin-bottom: 20px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-.ubicacion {
-  width: 100px; /* reducido */
-  padding: 5px;
-  font-size: 14px;
-}
-
-.ubicacion-contenedor label {
-  margin-right: 5px;
-}
-.login-container input[type="submit"] {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
-}
-
-.login-container input[type="submit"]:hover {
-  background-color: #45a049;
-}
-
-.login-container .error-message {
-  color: red;
-  text-align: center;
-  font-size: 14px;
-}
-.styled-select {
-  width: 93%;
-  min-width: 200px;
-  padding: 10px;
-  font-size: 16px;
-  border: 2px solid #ccc;
-  border-radius: 5px;
-  background-color: #f8f8f8;
-  cursor: pointer;
-}
-
-.styled-select:focus {
-  border-color: #007bff;
-  outline: none;
-}
-
-.edit-btn {
-  background-color: #f0ad4e;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  margin-right: 5px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.delete-btn {
-  background-color: #d9534f;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.edit-btn:hover {
-  background-color: #ec971f;
-}
-
-.delete-btn:hover {
-  background-color: #c9302c;
-}
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 5px;
-  width: 300px;
-  text-align: center;
-}
-.search-input {
-  width: 90%;
-  padding: 10px;
-  font-size: 16px;
-  border: 2px solid #ccc;
-  border-radius: 5px;
-  margin-bottom: 20px;
-}
-
-.filters {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.ubicacion-contenedor {
-  display: flex;
-  gap: 15px;
-  align-items: center;
 }

@@ -15,6 +15,10 @@ import useAutoLogout from './useAutoLogout';
 import Entradas from './pages/Entradas';
 import Salidas from './pages/Salidas';
 import Reportes from './pages/Reportes';
+import Dashboard from './pages/Dashboard';
+import HistorialVentas from './pages/HistorialVentas';
+import HistorialLogs from './HistorialLogs';
+import Categorias from './pages/Categorias';
 
 function AppWrapper() {
   return (
@@ -29,6 +33,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [usuarioAuth, setUsuarioAuth] = useState({ id: null, nombre: '', rol: '' });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
@@ -67,6 +72,8 @@ function App() {
           rol: decoded.rol,
         });
         setIsAuthenticated(true);
+        const dest = decoded.rol === 'empleado' ? '/ventas' : '/dashboard';
+        navigate(dest);
       } catch (e) {
         console.error('Token inválido', e);
       }
@@ -80,12 +87,23 @@ function App() {
   );
 
   if (loadingAuth) {
-    return <div>Cargando sesión...</div>;
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', background: 'var(--color-bg)', color: 'var(--color-muted)' }}>
+        Cargando sesión…
+      </div>
+    );
   }
 
   return (
-    <>
-      {isAuthenticated && <Navbar />}
+    <div className={isAuthenticated ? 'app-shell' : ''}>
+      {isAuthenticated && (
+        <Navbar
+          onLogout={handleLogout}
+          isOpen={sidebarOpen}
+          onToggle={setSidebarOpen}
+        />
+      )}
       {showWarning && (
         <AutoLogoutModal
           nombre={usuarioAuth.nombre}
@@ -97,13 +115,16 @@ function App() {
           onLogout={handleLogout}
         />
       )}
+      <div className={isAuthenticated ? 'app-content' : ''}>
       <Routes>
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <div style={{ padding: '20px', fontSize: '20px' }}>
-                Hola, <strong>{usuarioAuth.nombre || 'Cargando...'}</strong>. Bienvenido al sistema.
+              <div className="welcome-screen">
+                <div className="welcome-icon">👋</div>
+                <h2>Hola, <strong>{usuarioAuth.nombre || 'Usuario'}</strong></h2>
+                <p>Bienvenido al sistema POS. Usa el menú lateral para navegar.</p>
               </div>
             ) : (
               <Login onLogin={handleLogin} />
@@ -121,9 +142,14 @@ function App() {
         <Route path="/entradas" element={isAuthenticated ? <Entradas /> : <Navigate to="/login" />} />
         <Route path="/salidas" element={isAuthenticated ? <Salidas /> : <Navigate to="/login" />} />
 
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/historial-ventas" element={isAuthenticated ? <HistorialVentas /> : <Navigate to="/login" />} />
+        <Route path="/logs" element={isAuthenticated ? <HistorialLogs /> : <Navigate to="/login" />} />
+        <Route path="/categorias" element={isAuthenticated ? <Categorias /> : <Navigate to="/login" />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
       </Routes>
-    </>
+      </div>
+    </div>
   );
 }
 

@@ -43,19 +43,15 @@ const obtenerVentasPorProducto = async (req, res) => {
 
 const obtenerInventarioBajo = async (req, res) => {
   try {
-    const productos = await prisma.producto.findMany({
-      where: {
-        stock: {
-          lte: prisma.producto.fields.stockMinimo,
-        },
-      },
-      select: {
-        id: true,
-        nombre: true,
-        stock: true,
-        stockMinimo: true,
-      },
-    });
+    // Prisma no permite comparar dos columnas directamente, usamos queryRaw
+    const productos = await prisma.$queryRaw`
+      SELECT id, nombre, stock, "stockMinimo"
+      FROM "Producto"
+      WHERE "stockMinimo" IS NOT NULL
+        AND stock IS NOT NULL
+        AND stock <= "stockMinimo"
+      ORDER BY stock ASC
+    `;
 
     res.json(productos);
   } catch (error) {

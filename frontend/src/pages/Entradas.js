@@ -1,185 +1,165 @@
 import React, { useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
-import { useNavigate } from 'react-router-dom';
+import { FaArrowDown, FaBoxOpen, FaFilePdf, FaImage } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+const authHeader = () => ({ 'Authorization': `Bearer ${localStorage.getItem('token')}` });
+
+const EMPTY = { productoId: '', motivo: '', cantidad: '', comentario: '', imagen: null };
+
 function Entradas() {
-  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
-  const [entradas, setEntradas] = useState([]);
-  const [formData, setFormData] = useState({
-    productoId: '',
-    motivo: '',
-    cantidad: '',
-    comentario: '',
-    imagen: null,
-  });
-  const [usuarioId, setUsuarioId] = useState(null);
+  const [entradas, setEntradas]   = useState([]);
+  const [form, setForm]           = useState(EMPTY);
+  const [saving, setSaving]       = useState(false);
+  const [toast, setToast]         = useState(null);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setUsuarioId(decoded.id);
-      } catch (error) {
-        console.error('Error al decodificar el token:', error);
-      }
-    }
-
-    fetch(`${API_URL}/api/productos`)
-      .then((res) => res.json())
-      .then((data) => setProductos(data));
-
+    fetch(`${API_URL}/api/productos`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setProductos(Array.isArray(d) ? d : []));
     fetchEntradas();
   }, []);
 
   const fetchEntradas = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/inventario/entradas`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Error HTTP: ${res.status} - ${errorText}`);
-      }
-      const data = await res.json();
-      setEntradas(data);
-    } catch (error) {
-      console.error('Error al obtener entradas:', error);
-      alert('Error al cargar historial de entradas');
-    }
+      const res = await fetch(`${API_URL}/api/inventario/entradas`, { headers: authHeader() });
+      if (res.ok) setEntradas(await res.json());
+    } catch (e) { console.error(e); }
   };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (files) {
-      setFormData({ ...formData, [name]: files[0] });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setForm(f => ({ ...f, [name]: files ? files[0] : value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const token = localStorage.getItem('token');
+    setSaving(true);
     const data = new FormData();
-    data.append('productoId', formData.productoId);
-    data.append('motivo', formData.motivo);
-    data.append('cantidad', formData.cantidad);
-    data.append('comentario', formData.comentario);
-    data.append('imagen', formData.imagen);
-    data.append('usuarioId', usuarioId);
-  
-    // ✅ Confirmación previa de usuarioId en consola
-    console.log('Usuario ID que se enviará con la entrada:', usuarioId);
-  
-    if (!usuarioId) {
-      alert('Error: No se detectó usuarioId. Verifica sesión.');
-      return;
-    }
-  
+    data.append('productoId', form.productoId);
+    data.append('motivo',     form.motivo);
+    data.append('cantidad',   form.cantidad);
+    data.append('comentario', form.comentario);
+    if (form.imagen) data.append('imagen', form.imagen);
     try {
       const res = await fetch(`${API_URL}/api/inventario/entrada`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: data,
+        method: 'POST', headers: authHeader(), body: data,
       });
-  
       const result = await res.json();
       if (res.ok) {
-        alert('Entrada registrada correctamente');
-        setFormData({ productoId: '', motivo: '', cantidad: '', comentario: '', imagen: null });
+        showToast('Entrada registrada correctamente');
+        setForm(EMPTY);
         fetchEntradas();
       } else {
-        alert(result.message);
+        showToast(result.message || 'Error al registrar', 'danger');
       }
-    } catch (error) {
-      console.error('Error en la petición:', error);
-      alert('Error al registrar entrada');
+    } catch (e) {
+      showToast('Error de conexión', 'danger');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="container">
-            <button onClick={() => navigate('/inventario')} style={{ marginBottom: '15px' }}>
-        Volver a Inventario
-      </button>
+    <div>
+      <div className="page-header">
+        <h1>Entradas de inventario</h1>
+        <p>Registra compras, devoluciones o ajustes de stock al alza</p>
+      </div>
 
-      <h1>Registrar Entrada de Producto</h1>
-      <form onSubmit={handleSubmit}>
-        <label>Producto</label>
-        <select name="productoId" value={formData.productoId} onChange={handleChange} required>
-          <option value="">Selecciona un producto</option>
-          {productos.map((prod) => (
-            <option key={prod.id} value={prod.id}>{prod.nombre}</option>
-          ))}
-        </select>
+      <div className="entradas-layout">
+        {/* Form */}
+        <div className="card">
+          <h2 className="card-title"><FaArrowDown style={{ color: 'var(--color-success)' }} /> Nueva entrada</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Producto *</label>
+              <select name="productoId" value={form.productoId} onChange={handleChange} required>
+                <option value="">Selecciona un producto</option>
+                {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Motivo *</label>
+              <input name="motivo" type="text" value={form.motivo} onChange={handleChange} required
+                placeholder="Ej. Compra a proveedor, Devolución…" />
+            </div>
+            <div className="form-group">
+              <label>Cantidad *</label>
+              <input name="cantidad" type="number" min="1" value={form.cantidad} onChange={handleChange} required placeholder="0" />
+            </div>
+            <div className="form-group">
+              <label>Comentario</label>
+              <input name="comentario" type="text" value={form.comentario} onChange={handleChange} placeholder="Opcional" />
+            </div>
+            <div className="form-group">
+              <label>Documento (imagen o PDF)</label>
+              <input name="imagen" type="file" onChange={handleChange} accept="image/*,.pdf" />
+            </div>
+            <button type="submit" className="btn btn-success" style={{ width: '100%', justifyContent: 'center' }} disabled={saving}>
+              {saving ? 'Registrando…' : <><FaArrowDown /> Registrar entrada</>}
+            </button>
+          </form>
+        </div>
 
-        <label>Motivo</label>
-        <input type="text" name="motivo" value={formData.motivo} onChange={handleChange} required />
+        {/* History */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+            <h2 className="card-title" style={{ marginBottom: 0 }}>Historial de entradas</h2>
+          </div>
+          {entradas.length === 0
+            ? <div className="empty-state"><div className="empty-state-icon"><FaBoxOpen /></div><p>Sin entradas registradas.</p></div>
+            : (
+              <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Producto</th>
+                      <th>Motivo</th>
+                      <th style={{ textAlign: 'center' }}>Cant.</th>
+                      <th>Comentario</th>
+                      <th>Archivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entradas.map(e => {
+                      const nombre = productos.find(p => p.id === e.productoId)?.nombre || `#${e.productoId}`;
+                      return (
+                        <tr key={e.id}>
+                          <td style={{ fontSize: '.8rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+                            {new Date(e.fecha).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
+                          </td>
+                          <td style={{ fontWeight: 500 }}>{nombre}</td>
+                          <td>{e.motivo}</td>
+                          <td style={{ textAlign: 'center' }}><span className="badge badge-success">{e.cantidad}</span></td>
+                          <td style={{ color: 'var(--color-muted)', fontSize: '.85rem' }}>{e.comentario || '—'}</td>
+                          <td>
+                            {e.imagenUrl
+                              ? e.imagenUrl.toLowerCase().endsWith('.pdf')
+                                ? <a href={`${API_URL}${e.imagenUrl}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm"><FaFilePdf /> PDF</a>
+                                : <a href={`${API_URL}${e.imagenUrl}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm"><FaImage /> Ver</a>
+                              : <span style={{ color: 'var(--color-muted)', fontSize: '.8rem' }}>—</span>
+                            }
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          }
+        </div>
+      </div>
 
-        <label>Cantidad</label>
-        <input type="number" name="cantidad" value={formData.cantidad} onChange={handleChange} required />
-
-        <label>Comentario</label>
-        <input type="text" name="comentario" value={formData.comentario} onChange={handleChange} />
-
-        <label>Imagen (Factura, foto, etc.)</label>
-        <input type="file" name="imagen" onChange={handleChange} accept="image/*,.pdf" />
-
-        <button type="submit">Registrar Entrada</button>
-      </form>
-
-      <h2>Historial de Entradas</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Producto</th>
-      <th>Motivo</th>
-      <th>Cantidad</th>
-      <th>Comentario</th>
-      <th>Imagen</th>
-    </tr>
-  </thead>
-  <tbody>
-    {entradas.map((entrada) => {
-      const productoNombre = productos.find((p) => p.id === entrada.productoId)?.nombre || 'Producto no encontrado';
-      return (
-        <tr key={entrada.id}>
-          <td>{new Date(entrada.fecha).toLocaleString()}</td>
-          <td>{productoNombre}</td>
-          <td>{entrada.motivo}</td>
-          <td>{entrada.cantidad}</td>
-          <td>{entrada.comentario || '-'}</td>
-          <td>
-            {entrada.imagenUrl ? (
-              entrada.imagenUrl.toLowerCase().endsWith('.pdf') ? (
-                <a href={`${API_URL}${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer" download>
-                  Descargar PDF
-                </a>
-              ) : (
-                <a href={`${API_URL}${entrada.imagenUrl}`} target="_blank" rel="noopener noreferrer">
-                  Ver Imagen
-                </a>
-              )
-            ) : (
-              'Sin archivo'
-            )}
-          </td>
-        </tr>
-      );
-    })}
-  </tbody>
-</table>
+      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }

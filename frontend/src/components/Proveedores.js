@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const Proveedores = () => {
   const [proveedores, setProveedores] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5001/api/proveedores") // Ajusta la URL según tu backend
+    fetch(`${API_URL}/api/proveedores`)
       .then((response) => response.json())
       .then((data) => setProveedores(data))
       .catch((error) => console.error("Error al obtener proveedores:", error));

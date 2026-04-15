@@ -1,65 +1,72 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../prismaClient');
+const { verificarToken, requireRol } = require('../middleware/auth');
 
-router.post('/nueva', async (req, res) => {
-  const { usuarioId, productos, total, metodoPago, pagoEfectivo, pagoTarjeta, montoPagado, cambio } = req.body;
+// POST /api/ventas/nueva — cualquier rol autenticado puede vender
+router.post('/nueva', verificarToken, async (req, res) => {
+  const { productos, total, metodoPago, pagoTarjeta, montoPagado, cambio } = req.body;
+  const usuarioId = req.usuario.id; // extraído del token, no del body
 
-  if (!usuarioId || !productos || productos.length === 0 || !total) {
+  if (!productos || productos.length === 0 || !total) {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
 
+  // Verificar que haya una caja abierta antes de procesar la venta
+  const cajaAbierta = await prisma.caja.findFirst({ where: { estado: true } });
+  if (!cajaAbierta) {
+    return res.status(400).json({ error: 'No hay caja abierta. Debes iniciar una caja antes de realizar ventas.' });
+  }
+
+  const tarjeta = Number(pagoTarjeta || 0);
+  const totalVenta = Number(total || 0);
+  let pagoEfectivoReal = 0;
+  if (metodoPago === 'efectivo') {
+    pagoEfectivoReal = totalVenta;
+  } else if (metodoPago === 'mixto') {
+    pagoEfectivoReal = totalVenta - tarjeta;
+  }
+  if (isNaN(pagoEfectivoReal)) pagoEfectivoReal = 0;
+
   try {
-    // Validar stock antes de procesar la venta para evitar stock negativo
-    for (const p of productos) {
-      const productoActual = await prisma.producto.findUnique({ where: { id: p.id } });
-      if (!productoActual || productoActual.stock < p.cantidad) {
-        return res.status(400).json({ error: `Stock insuficiente para el producto ID ${p.id}` });
+    const venta = await prisma.$transaction(async (tx) => {
+      for (const p of productos) {
+        const productoActual = await tx.producto.findUnique({ where: { id: p.id } });
+        if (!productoActual || productoActual.stock < p.cantidad) {
+          throw new Error(`Stock insuficiente para el producto: ${productoActual?.nombre || p.id}`);
+        }
       }
-    }
 
-    const tarjeta = Number(pagoTarjeta || 0);
-    const totalVenta = Number(total || 0);
-    let pagoEfectivoReal = 0;
-    if (metodoPago === 'efectivo') {
-      pagoEfectivoReal = totalVenta;
-    } else if (metodoPago === 'mixto') {
-      pagoEfectivoReal = totalVenta - tarjeta;
-    }
-    if (isNaN(pagoEfectivoReal)) pagoEfectivoReal = 0;
-
-    // 1. Crear la venta
-    const venta = await prisma.venta.create({
-      data: {
-        usuarioId,
-        total,
-        metodoPago,
-        pagoEfectivo: pagoEfectivoReal,
-        pagoTarjeta,
-        montoPagado,
-        cambio,
-        detalles: {
-          create: productos.map((p) => ({
-            productoId: p.id,
-            cantidad: p.cantidad,
-            subtotal: p.cantidad * p.precio,
-          })),
+      const nuevaVenta = await tx.venta.create({
+        data: {
+          usuarioId,
+          total,
+          metodoPago,
+          pagoEfectivo: pagoEfectivoReal,
+          pagoTarjeta: tarjeta,
+          montoPagado,
+          cambio,
+          detalles: {
+            create: productos.map((p) => ({
+              productoId: p.id,
+              cantidad: p.cantidad,
+              subtotal: p.cantidad * p.precio,
+            })),
+          },
         },
-      },
-      include: { detalles: true },
-      
+        include: { detalles: true },
+      });
+
+      for (const p of productos) {
+        await tx.producto.update({
+          where: { id: p.id },
+          data: { stock: { decrement: p.cantidad } },
+        });
+      }
+
+      return nuevaVenta;
     });
 
-    // 2. Actualizar stock de productos para reflejar la venta y evitar inconsistencias
-    for (const p of productos) {
-      await prisma.producto.update({
-        where: { id: p.id },
-        data: { stock: { decrement: p.cantidad } },
-      });
-    }
-
-    // 3. Registrar log de venta
     await prisma.log.create({
       data: {
         usuarioId,
@@ -69,49 +76,32 @@ router.post('/nueva', async (req, res) => {
         detalles: `Venta de $${total} (${metodoPago})`,
       },
     });
-    
 
-    // 4. Actualizar total en caja (solo sumar el efectivo recibido)
-    const cajaHoy = await prisma.caja.findFirst({
-      orderBy: { fecha: 'desc' },
+    await prisma.caja.update({
+      where: { id: cajaAbierta.id },
+      data: {
+        totalVentas: { increment: total },
+        totalEnCaja: { increment: pagoEfectivoReal },
+      },
     });
-
-    if (cajaHoy) {
-      await prisma.caja.update({
-        where: { id: cajaHoy.id },
-        data: {
-          totalVentas: { increment: total },
-          totalEnCaja: { increment: pagoEfectivoReal }, // SOLO suma efectivo
-        },
-      });
-
-      // Registrar log adicional por actualización de caja tras la venta
-      await prisma.log.create({
-        data: {
-          usuarioId,
-          accion: 'Actualización de caja por venta',
-          entidad: 'Caja',
-          entidadId: cajaHoy.id,
-          detalles: `Se incrementó totalVentas en $${total} y totalEnCaja en $${pagoEfectivoReal}`,
-        },
-      });
-    }
 
     res.status(201).json(venta);
   } catch (error) {
+    if (error.message.startsWith('Stock insuficiente')) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('Error en venta:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Obtener historial de ventas
-router.get('/', async (req, res) => {
+// Historial de ventas — solo gerente/admin
+router.get('/', verificarToken, requireRol('admin', 'gerente'), async (req, res) => {
   try {
     const ventas = await prisma.venta.findMany({
       include: { detalles: { include: { producto: true } }, usuario: true },
       orderBy: { fecha: 'desc' },
     });
-
     res.json(ventas);
   } catch (error) {
     console.error('Error al obtener ventas:', error);

@@ -1,167 +1,190 @@
 import React, { useState, useEffect } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaTimes, FaTruck, FaDownload } from 'react-icons/fa';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+const authHeader = () => ({
+  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+  'Content-Type': 'application/json',
+});
+
+const EMPTY = { nombre: '', telefono: '', email: '', direccion: '' };
+
 function AgregarProveedor() {
-  const [proveedor, setProveedor] = useState({
-    nombre: '',
-    telefono: '',
-    email: '',
-    direccion: '',
-  });
+  const [proveedores, setProveedores] = useState([]);
+  const [form, setForm]               = useState(EMPTY);
+  const [editId, setEditId]           = useState(null);
+  const [saving, setSaving]           = useState(false);
+  const [toast, setToast]             = useState(null);
 
-  const [proveedores, setProveedores] = useState([]); // Estado para la lista de proveedores
-  const [editando, setEditando] = useState(null); // Estado para manejar edición
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  useEffect(() => {
-    obtenerProveedores();
-  }, []);
+  useEffect(() => { obtenerProveedores(); }, []);
 
   const obtenerProveedores = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/proveedores`);
-      const data = await response.json();
-      setProveedores(data);
-    } catch (error) {
-      console.error('Error al obtener proveedores:', error);
+      const res  = await fetch(`${API_URL}/api/proveedores`, { headers: authHeader() });
+      const data = await res.json();
+      setProveedores(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Error al obtener proveedores:', e);
+      setProveedores([]);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProveedor({ ...proveedor, [name]: value });
-  };
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const url = editando 
-      ? `${API_URL}/api/proveedores/${editando.id}`
-      : `${API_URL}/api/proveedores/agregar`;
-
-    const method = editando ? 'PUT' : 'POST';
-
+    setSaving(true);
+    const url    = editId ? `${API_URL}/api/proveedores/${editId}` : `${API_URL}/api/proveedores/agregar`;
+    const method = editId ? 'PUT' : 'POST';
     try {
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(proveedor),
-      });
-
-      if (response.ok) {
-        alert(editando ? 'Proveedor actualizado' : 'Proveedor agregado');
-        setProveedor({ nombre: '', telefono: '', email: '', direccion: '' });
-        setEditando(null);
+      const res = await fetch(url, { method, headers: authHeader(), body: JSON.stringify(form) });
+      if (res.ok) {
+        showToast(editId ? 'Proveedor actualizado' : 'Proveedor agregado');
+        setForm(EMPTY);
+        setEditId(null);
         obtenerProveedores();
       } else {
-        alert('Error al guardar el proveedor');
+        showToast('Error al guardar el proveedor', 'danger');
       }
-    } catch (error) {
-      console.error('Error al guardar proveedor:', error);
+    } catch (e) {
+      showToast('Error de conexión', 'danger');
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handleEdit = (prov) => {
-    setProveedor(prov);
-    setEditando(prov);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('¿Seguro que quieres eliminar este proveedor?')) return;
-
     try {
-      const response = await fetch(`${API_URL}/api/proveedores/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        alert('Proveedor eliminado');
-        obtenerProveedores();
-      } else {
-        alert('Error al eliminar proveedor');
-      }
-    } catch (error) {
-      console.error('Error al eliminar proveedor:', error);
+      const res = await fetch(`${API_URL}/api/proveedores/${id}`, { method: 'DELETE', headers: authHeader() });
+      if (res.ok) { showToast('Proveedor eliminado'); obtenerProveedores(); }
+      else showToast('Error al eliminar', 'danger');
+    } catch (e) {
+      showToast('Error de conexión', 'danger');
     }
   };
 
-  // Función para descargar los datos como CSV
+  const startEdit = (prov) => {
+    setEditId(prov.id);
+    setForm({ nombre: prov.nombre, telefono: prov.telefono || '', email: prov.email || '', direccion: prov.direccion || '' });
+  };
+
+  const cancelEdit = () => { setEditId(null); setForm(EMPTY); };
+
   const downloadCSV = () => {
-    const csvRows = [];
-    
-    // Cabeceras de las columnas
-    const headers = ['Nombre', 'Teléfono', 'Email', 'Dirección'];
-    csvRows.push(headers.join(','));
-
-    // Datos de los proveedores
-    proveedores.forEach((prov) => {
-      const row = [prov.nombre, prov.telefono, prov.email, prov.direccion];
-      csvRows.push(row.join(','));
-    });
-
-    // Crear un Blob de tipo CSV
-    const csvBlob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-
-    // Crear un enlace de descarga
-    const csvUrl = URL.createObjectURL(csvBlob);
+    const rows = [
+      ['Nombre', 'Teléfono', 'Email', 'Dirección'],
+      ...proveedores.map(p => [p.nombre, p.telefono || '', p.email || '', p.direccion || '']),
+    ];
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
-    a.href = csvUrl;
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     a.download = 'proveedores.csv';
     a.click();
-    URL.revokeObjectURL(csvUrl); // Limpiar el enlace después de la descarga
   };
 
   return (
-    <div className="container">
-      <h2>{editando ? 'Editar Proveedor' : 'Agregar Proveedor'}</h2>
-      <form onSubmit={handleSubmit}>
+    <div>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <label>Nombre:</label>
-          <input type="text" name="nombre" value={proveedor.nombre} onChange={handleChange} required />
+          <h1>Proveedores</h1>
+          <p>{proveedores.length} proveedores registrados</p>
         </div>
-        <div>
-          <label>Teléfono:</label>
-          <input type="text" name="telefono" value={proveedor.telefono} onChange={handleChange} />
-        </div>
-        <div>
-          <label>Email:</label>
-          <input type="email" name="email" value={proveedor.email} onChange={handleChange} />
-        </div>
-        <div>
-          <label>Dirección:</label>
-          <textarea name="direccion" value={proveedor.direccion} onChange={handleChange}></textarea>
-        </div>
-        <button type="submit">{editando ? 'Actualizar' : 'Agregar'}</button>
-      </form>
+        {proveedores.length > 0 && (
+          <button className="btn btn-ghost" onClick={downloadCSV}><FaDownload /> CSV</button>
+        )}
+      </div>
 
-      <h2>Lista de Proveedores</h2>
-      <button onClick={downloadCSV}>Descargar CSV</button>
+      <div className="entradas-layout">
+        {/* Form */}
+        <div className="card">
+          <h2 className="card-title">
+            <FaTruck /> {editId ? 'Editar proveedor' : 'Nuevo proveedor'}
+          </h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Nombre *</label>
+              <input name="nombre" type="text" value={form.nombre} onChange={handleChange} required placeholder="Ej. Distribuidora Central" />
+            </div>
+            <div className="form-group">
+              <label>Teléfono</label>
+              <input name="telefono" type="text" value={form.telefono} onChange={handleChange} placeholder="Ej. 81 1234 5678" />
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="contacto@proveedor.com" />
+            </div>
+            <div className="form-group">
+              <label>Dirección</label>
+              <input name="direccion" type="text" value={form.direccion} onChange={handleChange} placeholder="Ej. Av. Industrial #45, Col. Norte" />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {editId && (
+                <button type="button" className="btn btn-ghost" onClick={cancelEdit}><FaTimes /> Cancelar</button>
+              )}
+              <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={saving}>
+                {saving ? 'Guardando…' : editId ? <><FaEdit /> Actualizar</> : <><FaPlus /> Agregar</>}
+              </button>
+            </div>
+          </form>
+        </div>
 
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Dirección</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {proveedores.map((prov) => (
-            <tr key={prov.id}>
-              <td>{prov.nombre}</td>
-              <td>{prov.telefono}</td>
-              <td>{prov.email}</td>
-              <td>{prov.direccion}</td>
-              <td>
-                <button onClick={() => handleEdit(prov)}>Editar</button>
-                <button onClick={() => handleDelete(prov.id)}>Eliminar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        {/* List */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)' }}>
+            <h2 className="card-title" style={{ marginBottom: 0 }}>Lista de proveedores</h2>
+          </div>
+          {proveedores.length === 0
+            ? (
+              <div className="empty-state">
+                <div className="empty-state-icon"><FaTruck /></div>
+                <p>No hay proveedores registrados.</p>
+              </div>
+            )
+            : (
+              <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Teléfono</th>
+                      <th>Email</th>
+                      <th>Dirección</th>
+                      <th style={{ textAlign: 'right' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proveedores.map(prov => (
+                      <tr key={prov.id}>
+                        <td style={{ fontWeight: 600 }}>{prov.nombre}</td>
+                        <td style={{ color: 'var(--color-muted)' }}>{prov.telefono || '—'}</td>
+                        <td style={{ color: 'var(--color-muted)', fontSize: '.85rem' }}>{prov.email || '—'}</td>
+                        <td style={{ color: 'var(--color-muted)', fontSize: '.85rem' }}>{prov.direccion || '—'}</td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <button className="btn btn-warning btn-sm" style={{ marginRight: '6px' }} onClick={() => startEdit(prov)}>
+                            <FaEdit />
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(prov.id)}>
+                            <FaTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          }
+        </div>
+      </div>
+
+      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
     </div>
   );
 }

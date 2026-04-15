@@ -1,10 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../prismaClient');
 
 // Iniciar caja con un fondo inicial
 exports.iniciarCaja = async (req, res) => {
   const { fondoInicial } = req.body;
-  
+  const usuarioId = req.usuario?.id;
+
   try {
     await prisma.caja.updateMany({
       where: { estado: true },
@@ -74,7 +74,7 @@ exports.egresarFondos = async (req, res) => {
   }
 };
 
-// Realizar corte de caja (cierre)
+// Realizar corte de caja (resumen)
 exports.realizarCorte = async (req, res) => {
   try {
     const caja = await prisma.caja.findFirst({
@@ -83,29 +83,25 @@ exports.realizarCorte = async (req, res) => {
     });
 
     if (!caja) {
-      console.log('No se encontró una caja activa');
       return res.status(400).json({ error: 'No hay caja abierta' });
     }
-
-    console.log('Caja activa encontrada:', caja);
 
     const ventas = await prisma.venta.findMany({
       where: { fecha: { gte: caja.fecha } },
     });
 
-    console.log('Ventas desde apertura:', ventas);
-
     const efectivo = ventas.reduce((sum, v) => sum + Number(v.pagoEfectivo || 0), 0);
     const tarjeta = ventas.reduce((sum, v) => sum + Number(v.pagoTarjeta || 0), 0);
     const totalVentas = efectivo + tarjeta;
 
+    // Bug fix: usar `mov` (parámetro del reduce) en lugar de `m`
     const ingresos = caja.movimientos
-      .filter(m => m.tipo === 'ingreso')
-      .reduce((acc, mov) => acc + Number(m.monto), 0);
+      .filter(mov => mov.tipo === 'ingreso')
+      .reduce((acc, mov) => acc + Number(mov.monto), 0);
 
     const egresos = caja.movimientos
-      .filter(m => m.tipo === 'egreso')
-      .reduce((acc, mov) => acc + Number(m.monto), 0);
+      .filter(mov => mov.tipo === 'egreso')
+      .reduce((acc, mov) => acc + Number(mov.monto), 0);
 
     const resumen = {
       fecha: caja.fecha,
@@ -117,8 +113,6 @@ exports.realizarCorte = async (req, res) => {
       egresos,
       totalEnCaja: Number(caja.fondoInicial || 0) + efectivo,
     };
-
-    console.log('Resumen del corte:', resumen);
 
     res.json(resumen);
   } catch (error) {

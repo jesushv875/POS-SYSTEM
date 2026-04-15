@@ -13,6 +13,7 @@ const categoriasRoutes = require('./routes/categoriasRoutes');
 const cajaRoutes = require('./routes/cajaRoutes');
 const inventarioRoutes = require('./routes/inventarioRoutes');
 const reportesRoutes = require('./routes/reportesRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/api/categorias', categoriasRoutes);
 app.use('/api/caja', cajaRoutes);
 app.use('/api/inventario', inventarioRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Servir imágenes públicas
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -60,7 +62,13 @@ app.get('/', (req, res) => {
 
 // Manejo global de rutas no encontradas
 app.use((req, res) => {
-  res.status(404).send('Ruta no encontrada');
+  res.status(404).json({ message: 'Ruta no encontrada' });
+});
+
+// Manejador global de errores — captura cualquier error no tratado en las rutas
+app.use((err, req, res, next) => {
+  console.error('Error no controlado:', err);
+  res.status(err.status || 500).json({ message: err.message || 'Error interno del servidor' });
 });
 
 const PORT = process.env.PORT || 5001;

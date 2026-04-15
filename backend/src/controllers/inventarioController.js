@@ -1,26 +1,16 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
+const prisma = require('../prismaClient');
 
 exports.registrarMovimiento = async (req, res, tipo) => {
-    
   try {
-    console.log('BODY COMPLETO:', req.body);
+    const { productoId, motivo, cantidad, comentario } = req.body;
+    const usuarioId = req.usuario?.id; // extraído del token JWT
 
-    console.log('Datos recibidos en el body:', req.body);
+    if (!usuarioId) {
+      return res.status(401).json({ message: 'No autenticado.' });
+    }
 
-    const { productoId, motivo, cantidad, comentario, usuarioId } = req.body;
-
-    console.log('UsuarioId recibido:', usuarioId);
-    console.log('UsuarioId recibido:', usuarioId, 'Tipo:', typeof usuarioId);
-
-if (!usuarioId || isNaN(parseInt(usuarioId))) {
-  console.error('UsuarioId no válido:', usuarioId);
-  return res.status(400).json({ message: 'UsuarioId inválido o ausente.' });
-}
-
-    if (!productoId || !motivo || !cantidad || !usuarioId) {
-      return res.status(400).json({ message: 'Producto, motivo, cantidad y usuarioId son obligatorios.' });
+    if (!productoId || !motivo || !cantidad) {
+      return res.status(400).json({ message: 'Producto, motivo y cantidad son obligatorios.' });
     }
 
     const cantidadInt = parseInt(cantidad);
@@ -41,8 +31,7 @@ if (!usuarioId || isNaN(parseInt(usuarioId))) {
       imagenUrl = `/uploads/${req.file.filename}`;
     }
 
-    // Registrar movimiento
-    const movimiento = await prisma.movimientoInventario.create({
+    await prisma.movimientoInventario.create({
       data: {
         tipo,
         motivo,
@@ -54,7 +43,6 @@ if (!usuarioId || isNaN(parseInt(usuarioId))) {
       },
     });
 
-    // Actualizar stock
     let nuevoStock = tipo === 'entrada'
       ? (producto.stock ?? 0) + cantidadInt
       : (producto.stock ?? 0) - cantidadInt;
@@ -73,16 +61,12 @@ if (!usuarioId || isNaN(parseInt(usuarioId))) {
   }
 };
 
-// inventarioController.js
-
-
 exports.obtenerEntradas = async (req, res) => {
   try {
     const entradas = await prisma.movimientoInventario.findMany({
       where: { tipo: 'entrada' },
       orderBy: { fecha: 'desc' },
     });
-
     res.json(entradas);
   } catch (error) {
     console.error('Error al obtener entradas:', error);
@@ -96,14 +80,12 @@ exports.obtenerSalidas = async (req, res) => {
       where: { tipo: 'salida' },
       orderBy: { fecha: 'desc' },
     });
-
     res.json(salidas);
   } catch (error) {
     console.error('Error al obtener salidas:', error);
     res.status(500).json({ message: 'Error al obtener salidas' });
   }
 };
-
 
 exports.registrarEntrada = (req, res) => exports.registrarMovimiento(req, res, 'entrada');
 exports.registrarSalida = (req, res) => exports.registrarMovimiento(req, res, 'salida');

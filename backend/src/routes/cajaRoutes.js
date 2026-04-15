@@ -1,32 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../prismaClient');
 const cajaController = require('../controllers/cajaController');
+const { verificarToken, requireRol } = require('../middleware/auth');
 
-// Obtener la caja activa
-router.get('/hoy', async (req, res) => {
+// Cualquier empleado autenticado puede ver el estado de la caja
+router.get('/hoy', verificarToken, async (req, res) => {
   try {
-    const caja = await prisma.caja.findFirst({
-      where: { estado: true }
-    });
-
-    if (!caja) {
-      return res.json(null);
-    }
-
-    res.json(caja);
+    const caja = await prisma.caja.findFirst({ where: { estado: true } });
+    res.json(caja || null);
   } catch (error) {
     console.error('Error al obtener caja activa:', error);
     res.status(500).json({ message: 'Error al obtener caja activa' });
   }
 });
 
-// Actualizar fondo inicial
-router.put('/fondo', async (req, res) => {
-  const { fondoInicial, usuarioId } = req.body;
+// Solo gerente/admin pueden iniciar, mover fondos y cerrar caja
+router.post('/iniciar', verificarToken, requireRol('admin', 'gerente'), cajaController.iniciarCaja);
+router.post('/ingreso', verificarToken, requireRol('admin', 'gerente'), cajaController.ingresarFondos);
+router.post('/egreso',  verificarToken, requireRol('admin', 'gerente'), cajaController.egresarFondos);
+router.get('/corte',    verificarToken, requireRol('admin', 'gerente'), cajaController.realizarCorte);
+
+router.put('/fondo', verificarToken, requireRol('admin', 'gerente'), async (req, res) => {
+  const { fondoInicial } = req.body;
+  const usuarioId = req.usuario.id;
   try {
     const caja = await prisma.caja.findFirst({ where: { estado: true } });
+    if (!caja) return res.status(400).json({ message: 'No hay caja abierta' });
 
     const actualizada = await prisma.caja.update({
       where: { id: caja.id },
@@ -49,7 +49,9 @@ router.put('/fondo', async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar fondo' });
   }
 });
-router.put('/cerrar', async (req, res) => {
+
+router.put('/cerrar', verificarToken, requireRol('admin', 'gerente'), async (req, res) => {
+  const usuarioId = req.usuario.id;
   try {
     const cajaActual = await prisma.caja.findFirst({
       where: { estado: true },
@@ -58,7 +60,6 @@ router.put('/cerrar', async (req, res) => {
 
     if (!cajaActual) return res.status(404).json({ message: 'Caja no encontrada o ya cerrada.' });
 
-    // Guardamos el retiro como movimiento
     await prisma.cajaMovimiento.create({
       data: {
         cajaId: cajaActual.id,
@@ -68,12 +69,18 @@ router.put('/cerrar', async (req, res) => {
       },
     });
 
-    // Cerramos caja
     await prisma.caja.update({
       where: { id: cajaActual.id },
+      data: { totalEnCaja: 0, estado: false },
+    });
+
+    await prisma.log.create({
       data: {
-        totalEnCaja: 0,
-        estado: false,
+        usuarioId,
+        accion: 'Cierre de caja',
+        entidad: 'Caja',
+        entidadId: cajaActual.id,
+        detalles: `Caja cerrada. Total retirado: $${cajaActual.totalEnCaja}`,
       },
     });
 
@@ -84,10 +91,19 @@ router.put('/cerrar', async (req, res) => {
   }
 });
 
-// Rutas delegadas al controlador
-router.post('/iniciar', cajaController.iniciarCaja);
-router.post('/ingreso', cajaController.ingresarFondos);
-router.post('/egreso', cajaController.egresarFondos);
-router.get('/corte', cajaController.realizarCorte);
+// Movimientos de la caja activa
+router.get('/movimientos', verificarToken, requireRol('admin', 'gerente'), async (req, res) => {
+  try {
+    const caja = await prisma.caja.findFirst({ where: { estado: true } });
+    if (!caja) return res.json([]);
+    const movimientos = await prisma.cajaMovimiento.findMany({
+      where: { cajaId: caja.id },
+      orderBy: { fecha: 'desc' },
+    });
+    res.json(movimientos);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener movimientos' });
+  }
+});
 
 module.exports = router;
