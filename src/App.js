@@ -1,85 +1,156 @@
 import './css/App.css';
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Inventario from './Inventario';
-import Home from './Home'; // Vista principal (Agregar productos)
-import Navbar from './components/Navbar'; // Importa el Navbar
-import Login from './components/Login'; // Importa el componente Login
-<<<<<<< HEAD
 import AgregarProveedor from './AgregarProveedor'; 
 import Usuarios from './pages/Usuarios';
 import Configuracion from './Configuracion';
+import Ventas from './pages/Ventas';
+import Caja from './pages/Caja';
+import Navbar from './components/Navbar';
+import Login from './components/Login';
+import AutoLogoutModal from './components/AutoLogoutModal';
 import { jwtDecode } from 'jwt-decode';
-=======
->>>>>>> parent of 95deac9... agregar proveedor funcionando
+import useAutoLogout from './useAutoLogout';
+import Entradas from './pages/Entradas';
+import Salidas from './pages/Salidas';
+import Reportes from './pages/Reportes';
+import Dashboard from './pages/Dashboard';
+import HistorialVentas from './pages/HistorialVentas';
+import HistorialLogs from './HistorialLogs';
+import Categorias from './pages/Categorias';
+
+function AppWrapper() {
+  return (
+    <Router>
+      <App />
+    </Router>
+  );
+}
 
 function App() {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [usuarioId, setUsuarioId] = useState(null); // Estado para almacenar el usuarioId
-  const token = localStorage.getItem('token');
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [usuarioAuth, setUsuarioAuth] = useState({ id: null, nombre: '', rol: '' });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    navigate('/login');
+  }, [navigate]);
 
-  // Función para decodificar el token y obtener el usuarioId
-  const getUserIdFromToken = (token) => {
-    try {
-      const decoded = jwtDecode(token);
-      return decoded.userId;  // Suponiendo que el 'userId' está en el payload
-    } catch (error) {
-      console.error('Error al decodificar el token:', error);
-      return null;
-    }
-  };
-
-  // Comprobar si el usuario tiene un token en el localStorage al cargar la app
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      setIsAuthenticated(true); // Si existe un token, consideramos que el usuario está autenticado
-      const userId = getUserIdFromToken(token); // Obtener el usuarioId desde el token
-      setUsuarioId(userId);  // Guardar el usuarioId en el estado
+      try {
+        const decoded = jwtDecode(token);
+        setUsuarioAuth({
+          id: decoded.id,
+          nombre: decoded.nombre,
+          rol: decoded.rol,
+          correo: decoded.correo
+        });
+        setIsAuthenticated(true);
+      } catch (e) {
+        console.error('Token inválido', e);
+        localStorage.removeItem('token');
+      }
     }
+    setLoadingAuth(false);
   }, []);
 
-  // Función que se llama cuando el login es exitoso
   const handleLogin = () => {
-    setIsAuthenticated(true); // Cambia el estado para mostrar el Navbar
-    const token = localStorage.getItem('token');
-    if (token) {
-      const userId = getUserIdFromToken(token);
-      setUsuarioId(userId);
-      //console.log('Token al hacer login:', token);  // Imprimir el token cuando se haya logueado
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      try {
+        const decoded = jwtDecode(storedToken);
+        setUsuarioAuth({
+          id: decoded.id,
+          nombre: decoded.nombre,
+          rol: decoded.rol,
+        });
+        setIsAuthenticated(true);
+        const dest = decoded.rol === 'empleado' ? '/ventas' : '/dashboard';
+        navigate(dest);
+      } catch (e) {
+        console.error('Token inválido', e);
+      }
     }
   };
 
+  const { showWarning, setShowWarning, resetTimers } = useAutoLogout(
+    5 * 60 * 1000,
+    60 * 1000,
+    isAuthenticated ? handleLogout : null
+  );
+
+  if (loadingAuth) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', background: 'var(--color-bg)', color: 'var(--color-muted)' }}>
+        Cargando sesión…
+      </div>
+    );
+  }
+
   return (
-    <Router>
-      {isAuthenticated && <Navbar />} {/* Solo mostrar el Navbar si está autenticado */}
+    <div className={isAuthenticated ? 'app-shell' : ''}>
+      {isAuthenticated && (
+        <Navbar
+          onLogout={handleLogout}
+          isOpen={sidebarOpen}
+          onToggle={setSidebarOpen}
+        />
+      )}
+      {showWarning && (
+        <AutoLogoutModal
+          nombre={usuarioAuth.nombre}
+          correo={usuarioAuth.correo}
+          onStay={() => {
+            resetTimers();
+            setShowWarning(false);
+          }}
+          onLogout={handleLogout}
+        />
+      )}
+      <div className={isAuthenticated ? 'app-content' : ''}>
       <Routes>
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <div>
-                <h1>Bienvenido al sistema de punto de venta</h1>
-                {/* Aquí puedes agregar más detalles del usuario si lo deseas */}
+              <div className="welcome-screen">
+                <div className="welcome-icon">👋</div>
+                <h2>Hola, <strong>{usuarioAuth.nombre || 'Usuario'}</strong></h2>
+                <p>Bienvenido al sistema POS. Usa el menú lateral para navegar.</p>
               </div>
             ) : (
               <Login onLogin={handleLogin} />
             )
           }
         />
-<<<<<<< HEAD
-        <Route path="/inventario" element={isAuthenticated ? <Inventario usuarioId={usuarioId} /> : <Login onLogin={handleLogin} />} />
-        <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Login onLogin={handleLogin} />} />
-        <Route path="/usuarios" element={isAuthenticated ? <Usuarios /> : <Login onLogin={handleLogin} />} />
-        <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Login onLogin={handleLogin} />} />
-=======
-        <Route path="/agregarProductos" element={isAuthenticated ? <AgregarProductos /> : <Login onLogin={handleLogin} />} />
-        <Route path="/inventario" element={isAuthenticated ? <Inventario /> : <Login onLogin={handleLogin} />} />
->>>>>>> parent of 95deac9... agregar proveedor funcionando
+        <Route path="/inventario" element={isAuthenticated ? <Inventario usuarioId={usuarioAuth.id} /> : <Navigate to="/login" />} />
+        <Route path="/agregar-proveedor" element={isAuthenticated ? <AgregarProveedor /> : <Navigate to="/login" />} />
+        <Route path="/usuarios" element={isAuthenticated ? <Usuarios /> : <Navigate to="/login" />} />
+        <Route path="/configuracion" element={isAuthenticated ? <Configuracion /> : <Navigate to="/login" />} />
+        <Route path="/ventas" element={isAuthenticated ? <Ventas /> : <Navigate to="/login" />} />
+        <Route path="/caja" element={isAuthenticated ? <Caja /> : <Navigate to="/login" />} />
+        <Route path="/reportes" element={isAuthenticated ? <Reportes /> : <Navigate to="/login" />} />
+        {/* ✅ Nuevas rutas de entradas y salidas protegidas */}
+        <Route path="/entradas" element={isAuthenticated ? <Entradas /> : <Navigate to="/login" />} />
+        <Route path="/salidas" element={isAuthenticated ? <Salidas /> : <Navigate to="/login" />} />
+
+        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+        <Route path="/historial-ventas" element={isAuthenticated ? <HistorialVentas /> : <Navigate to="/login" />} />
+        <Route path="/logs" element={isAuthenticated ? <HistorialLogs /> : <Navigate to="/login" />} />
+        <Route path="/categorias" element={isAuthenticated ? <Categorias /> : <Navigate to="/login" />} />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
       </Routes>
-    </Router>
+      </div>
+    </div>
   );
 }
 
-export default App;
+export default AppWrapper;

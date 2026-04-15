@@ -1,0 +1,5 @@
+node_modules
+# Keep environment variables out of version control
+
+SKIP_PREFLIGHT_CHECK=true
+REACT_APP_API_URL=http://localhost:3001
