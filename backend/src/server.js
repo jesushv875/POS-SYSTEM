@@ -19,10 +19,10 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const app = express();
 
 const allowedOriginPatterns = [
-  /^https?:\/\/localhost(:\d+)?$/,   // local dev (3000, 5173, etc.)
-  /^https:\/\/.*\.ngrok-free\.app$/, // any ngrok public URL
-    /^https:\/\/.*\.vercel\.app$/
-
+  /^https?:\/\/localhost(:\d+)?$/,    // local dev (3000, 5173, etc.)
+  /^https:\/\/.*\.ngrok-free\.app$/,  // ngrok .app
+  /^https:\/\/.*\.ngrok-free\.dev$/,  // ngrok .dev
+  /^https:\/\/.*\.vercel\.app$/,      // Vercel
 ];
 
 const corsOptions = {
