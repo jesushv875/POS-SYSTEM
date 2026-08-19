@@ -4,6 +4,10 @@ import './css/index.css';
 import './css/App.css';  // Importa los estilos
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import installDemoApi from './demo/mockApi';
+
+// No hace nada salvo que REACT_APP_DEMO=true (ver .env.production).
+installDemoApi();
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
