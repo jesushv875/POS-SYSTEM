@@ -274,7 +274,7 @@ function banner() {
   el.id = 'demo-banner';
   el.innerHTML =
     '<b>MODO DEMOSTRACIÓN</b> · datos de ejemplo, entra con cualquier correo y contraseña ' +
-    '<a href="https://wa.me/5219212295670?text=Hola%2C%20vi%20la%20demo%20del%20punto%20de%20venta%20y%20quiero%20uno%20para%20mi%20negocio." ' +
+    '<a href="https://wa.me/525522409684?text=Hola%2C%20vi%20la%20demo%20del%20punto%20de%20venta%20y%20quiero%20uno%20para%20mi%20negocio." ' +
     'target="_blank" rel="noopener">Quiero uno para mi negocio →</a>';
   el.setAttribute('style', [
     'position:fixed', 'left:0', 'right:0', 'bottom:0', 'z-index:99999',
